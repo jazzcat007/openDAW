@@ -24,7 +24,8 @@ import {
     MenuItem,
     ProjectMeta,
     ProjectSignals,
-    ProjectStorage
+    ProjectStorage,
+    ServerProjects
 } from "@opendaw/studio-core"
 import {SearchInput} from "@/ui/components/SearchInput"
 import {ThreeDots} from "@/ui/spinner/ThreeDots"
@@ -52,7 +53,9 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                 <div className="time">Modified</div>
                 <div/>
             </header>
-            <Await factory={() => ProjectStorage.listProjects()}
+            <Await factory={async () => (await ServerProjects.isAvailable())
+                       ? ServerProjects.listProjects()
+                       : ProjectStorage.listProjects()}
                    loading={() => (<div className="loader"><ThreeDots/></div>)}
                    failure={({reason, retry}) => (
                        <div className="error" onclick={retry}>
@@ -92,11 +95,14 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                                                                 MenuItem.default({label: "Download File"})
                                                                     .setTriggerProcedure(async () => {
                                                                         const {status, error} = await Promises.tryCatch(
-                                                                            ProjectStorage.loadProject(uuid).then(arrayBuffer =>
-                                                                                Files.save(arrayBuffer, {
-                                                                                    suggestedName: `${meta.name}.od`,
-                                                                                    types: [FilePickerAcceptTypes.ProjectFileType]
-                                                                                })))
+                                                                            (async () => (await ServerProjects.isAvailable()
+                                                                                ? ServerProjects.loadProject(uuid)
+                                                                                : ProjectStorage.loadProject(uuid)))()
+                                                                                .then(arrayBuffer =>
+                                                                                    Files.save(arrayBuffer, {
+                                                                                        suggestedName: `${meta.name}.od`,
+                                                                                        types: [FilePickerAcceptTypes.ProjectFileType]
+                                                                                    })))
                                                                         if (status === "rejected" && !Errors.isAbort(error)) {
                                                                             console.warn(error)
                                                                             RuntimeNotifier.notify({message: "Download failed.", icon: "Warning"})

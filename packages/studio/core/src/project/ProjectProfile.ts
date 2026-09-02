@@ -11,9 +11,11 @@ import {
     UUID
 } from "@opendaw/lib-std"
 import {Update} from "@opendaw/lib-box"
+import {Promises} from "@opendaw/lib-runtime"
 import {ProjectMetaBox} from "@opendaw/studio-boxes"
 import {ProjectMeta} from "./ProjectMeta"
 import {Project} from "./Project"
+import {ServerProjects} from "./ServerProjects"
 import {Workers} from "../Workers"
 import {ProjectPaths} from "./ProjectPaths"
 
@@ -237,13 +239,18 @@ export class ProjectProfile {
     }
 
     static async #writeFiles({uuid, project, meta, cover}: ProjectProfile): Promise<void> {
-        return Promise.all([
-            Workers.Opfs.write(ProjectPaths.projectFile(uuid), new Uint8Array(project.toArrayBuffer())),
-            Workers.Opfs.write(ProjectPaths.projectMeta(uuid), new TextEncoder().encode(JSON.stringify(meta))),
+        const projectBuffer = project.toArrayBuffer() as ArrayBuffer
+        const metaBuffer = new TextEncoder().encode(JSON.stringify(meta))
+        await Promise.all([
+            Workers.Opfs.write(ProjectPaths.projectFile(uuid), new Uint8Array(projectBuffer)),
+            Workers.Opfs.write(ProjectPaths.projectMeta(uuid), metaBuffer),
             cover.match({
                 none: () => Promise.resolve(),
                 some: x => Workers.Opfs.write(ProjectPaths.projectCover(uuid), new Uint8Array(x))
             })
         ]).then(EmptyExec)
+        if (!await ServerProjects.isAvailable()) {return}
+        const {status, error} = await Promises.tryCatch(ServerProjects.saveProject(uuid, projectBuffer, meta, cover))
+        if (status === "rejected") {return Promise.reject(error)}
     }
 }

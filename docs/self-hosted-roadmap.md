@@ -98,8 +98,9 @@ The product model is split into two clear modes:
 Current state:
 
 - Live Room documents are already persisted under `/data/rooms`.
-- Normal project save/load still uses browser OPFS through `ProjectProfile`, `ProjectStorage`, and related storage helpers.
-- Personal samples, soundfonts, presets, scripts, and templates also still use browser OPFS unless they are part of the factory catalog.
+- `/api/projects` now serves a server-backed Projects API (list, create, load, save, duplicate, archive/delete, restore, export, revision snapshots) storing data under `/data/projects/v1`.
+- The client Project browser, save/save-as flow, and project load now write to and read from the server API first; browser OPFS is written alongside as a cache/recovery copy and is only used as a fallback when the server is unavailable.
+- Personal samples, soundfonts, presets, scripts, and templates still use browser OPFS unless they are part of the factory catalog.
 
 Target server data areas:
 
@@ -110,12 +111,12 @@ Target server data areas:
 
 Implementation phases:
 
-1. Add server control foundation.
+1. Add server control foundation. **(done)**
    - Persist instance settings in `/data/server/settings.json`.
    - Expose authenticated `/api/server-info` and `/api/admin/settings` for future UI wiring.
    - Keep Basic Auth as the deployment gate until app-level sessions are ready.
 
-2. Make Projects server-backed.
+2. Make Projects server-backed. **(done)**
    - Add project API endpoints for list, create, load, save, duplicate, archive, delete, and export.
    - Store the project file, metadata, cover image, and revision snapshots under `/data/projects`.
    - Change the client Project browser and save flow so server storage is the default and OPFS becomes cache/recovery only.
@@ -147,7 +148,7 @@ Implementation phases:
 
 ## Immediate Next Steps
 
-1. Wire the client Project browser to server project list/load/save APIs.
+1. ~~Wire the client Project browser to server project list/load/save APIs.~~ **(done)**
 2. Add the Admin shell and route guarded by the existing auth boundary.
 3. Add individual user/session auth behind the Admin shell.
 4. Link Live Rooms to server Projects and autosnapshot them.

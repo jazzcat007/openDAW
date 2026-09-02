@@ -1,6 +1,10 @@
-import {createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from "node:fs"
+import {
+  copyFileSync, createReadStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, unlinkSync,
+  writeFileSync
+} from "node:fs"
 import {writeFile} from "node:fs/promises"
 import {createServer} from "node:http"
+import {randomUUID} from "node:crypto"
 import {extname, join, normalize} from "node:path"
 import {WebSocketServer} from "ws"
 import * as Y from "yjs"
@@ -10,6 +14,9 @@ import * as map from "lib0/map"
 const root = "/app/packages/app/studio/dist"
 const factoryAssetRoot = process.env.FACTORY_ASSET_ROOT ?? "/data/factory"
 const projectRoot = process.env.OPENDAW_PROJECT_ROOT ?? "/data/projects"
+const projectsRoot = join(projectRoot, "v1")
+const PROJECT_REVISION_LIMIT = 20
+const PROJECT_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const roomRoot = process.env.OPENDAW_ROOM_ROOT ?? "/data/rooms"
 const serverRoot = process.env.OPENDAW_SERVER_ROOT ?? "/data/server"
 const factoryOfflineOnly = process.env.OPENDAW_FACTORY_OFFLINE_ONLY === "true"
@@ -26,6 +33,7 @@ const roomCleanupTimers = new Map()
 
 mkdirSync(roomRoot, {recursive: true})
 mkdirSync(projectRoot, {recursive: true})
+mkdirSync(projectsRoot, {recursive: true})
 mkdirSync(serverRoot, {recursive: true})
 
 const settingsFile = join(serverRoot, "settings.json")
@@ -195,6 +203,262 @@ const serveStatic = (req, res) => {
   createReadStream(file).pipe(res)
 }
 
+const sendBinary = (res, status, buffer, headers = {}) => {
+  res.writeHead(status, {...commonHeaders, "Content-Type": "application/octet-stream", "Content-Length": String(buffer.length), ...headers})
+  res.end(buffer)
+}
+
+const readBody = (req, limit = 500 * 1024 * 1024) => new Promise((resolve, reject) => {
+  const chunks = []
+  let size = 0
+  req.on("data", chunk => {
+    size += chunk.length
+    if (size > limit) {
+      req.destroy()
+      reject(new Error("Payload too large"))
+      return
+    }
+    chunks.push(chunk)
+  })
+  req.on("end", () => resolve(Buffer.concat(chunks)))
+  req.on("error", reject)
+})
+
+const tryParseJson = (buffer) => {
+  try {
+    return JSON.parse(buffer.toString("utf8"))
+  } catch {
+    return undefined
+  }
+}
+
+const copyFileIfExists = (src, dest) => {
+  if (existsSync(src)) copyFileSync(src, dest)
+}
+
+const projectFolder = (uuid) => join(projectsRoot, uuid)
+const projectTrashFile = join(projectsRoot, "trash.json")
+const readProjectTrash = () => readJson(projectTrashFile, [])
+const writeProjectTrash = (ids) => writeFileSync(projectTrashFile, `${JSON.stringify(ids, null, 2)}\n`)
+
+const listProjectSummaries = () => {
+  if (!existsSync(projectsRoot)) return []
+  const trash = readProjectTrash()
+  return readdirSync(projectsRoot, {withFileTypes: true})
+    .filter(entry => entry.isDirectory() && PROJECT_UUID_PATTERN.test(entry.name) && !trash.includes(entry.name))
+    .map(entry => {
+      const meta = readJson(join(projectsRoot, entry.name, "meta.json"), null)
+      return meta === null ? null : {uuid: entry.name, meta}
+    })
+    .filter(entry => entry !== null)
+}
+
+const snapshotProjectRevision = (uuid) => {
+  const folder = projectFolder(uuid)
+  const filePath = join(folder, "project.od")
+  if (!existsSync(filePath)) return
+  const revisionsDir = join(folder, "revisions")
+  mkdirSync(revisionsDir, {recursive: true})
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-")
+  copyFileSync(filePath, join(revisionsDir, `${stamp}.od`))
+  const files = readdirSync(revisionsDir).filter(name => name.endsWith(".od")).sort()
+  const excess = files.length - PROJECT_REVISION_LIMIT
+  for (let i = 0; i < excess; i++) unlinkSync(join(revisionsDir, files[i]))
+}
+
+const serveProjectsApi = async (req, res) => {
+  const url = new URL(req.url, "https://localhost")
+  const segments = url.pathname.replace(/^\/api\/projects\/?/, "").split("/").filter(Boolean)
+  if (segments.length === 0) {
+    if (req.method === "GET") {
+      sendJson(res, 200, {projects: listProjectSummaries()})
+      return
+    }
+    if (req.method === "POST") {
+      const body = await readBody(req)
+      const parsed = tryParseJson(body)
+      const requestedMeta = parsed && typeof parsed === "object" && parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
+      const uuid = randomUUID()
+      const now = new Date().toISOString()
+      const meta = {name: "Untitled", artist: "", description: "", tags: [], created: now, modified: now, ...requestedMeta}
+      mkdirSync(projectFolder(uuid), {recursive: true})
+      writeFileSync(join(projectFolder(uuid), "meta.json"), `${JSON.stringify(meta, null, 2)}\n`)
+      sendJson(res, 200, {uuid, meta})
+      return
+    }
+    methodNotAllowed(res, ["GET", "POST"])
+    return
+  }
+  const [uuid, resource, revisionStamp] = segments
+  if (!PROJECT_UUID_PATTERN.test(uuid)) {
+    sendJson(res, 400, {error: "Invalid project id"})
+    return
+  }
+  const folder = projectFolder(uuid)
+  if (segments.length === 1) {
+    if (req.method === "GET") {
+      const meta = readJson(join(folder, "meta.json"), null)
+      if (meta === null) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      sendJson(res, 200, {uuid, meta})
+      return
+    }
+    if (req.method === "DELETE") {
+      const permanent = url.searchParams.get("permanent") === "true"
+      const trash = readProjectTrash()
+      if (permanent) {
+        if (existsSync(folder)) rmSync(folder, {recursive: true, force: true})
+        writeProjectTrash(trash.filter(id => id !== uuid))
+      } else {
+        if (!existsSync(join(folder, "meta.json"))) {
+          sendJson(res, 404, {error: "Not found"})
+          return
+        }
+        if (!trash.includes(uuid)) {
+          trash.push(uuid)
+          writeProjectTrash(trash)
+        }
+      }
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["GET", "DELETE"])
+    return
+  }
+  if (segments.length === 2 && resource === "file") {
+    if (req.method === "GET") {
+      const filePath = join(folder, "project.od")
+      if (!existsSync(filePath)) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      sendBinary(res, 200, readFileSync(filePath))
+      return
+    }
+    if (req.method === "PUT") {
+      const body = await readBody(req)
+      mkdirSync(folder, {recursive: true})
+      snapshotProjectRevision(uuid)
+      writeFileSync(join(folder, "project.od"), body)
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["GET", "PUT"])
+    return
+  }
+  if (segments.length === 2 && resource === "cover") {
+    if (req.method === "GET") {
+      const filePath = join(folder, "image.bin")
+      if (!existsSync(filePath)) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      sendBinary(res, 200, readFileSync(filePath))
+      return
+    }
+    if (req.method === "PUT") {
+      const body = await readBody(req)
+      mkdirSync(folder, {recursive: true})
+      writeFileSync(join(folder, "image.bin"), body)
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["GET", "PUT"])
+    return
+  }
+  if (segments.length === 2 && resource === "meta") {
+    if (req.method === "PUT") {
+      const body = await readBody(req)
+      const parsed = tryParseJson(body)
+      if (parsed === undefined || typeof parsed !== "object") {
+        sendJson(res, 400, {error: "Invalid JSON"})
+        return
+      }
+      mkdirSync(folder, {recursive: true})
+      writeFileSync(join(folder, "meta.json"), `${JSON.stringify(parsed, null, 2)}\n`)
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["PUT"])
+    return
+  }
+  if (segments.length === 2 && resource === "duplicate") {
+    if (req.method === "POST") {
+      const meta = readJson(join(folder, "meta.json"), null)
+      if (meta === null) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      const newUuid = randomUUID()
+      const newFolder = projectFolder(newUuid)
+      mkdirSync(newFolder, {recursive: true})
+      copyFileIfExists(join(folder, "project.od"), join(newFolder, "project.od"))
+      copyFileIfExists(join(folder, "image.bin"), join(newFolder, "image.bin"))
+      const now = new Date().toISOString()
+      const duplicatedMeta = {...meta, created: now, modified: now}
+      writeFileSync(join(newFolder, "meta.json"), `${JSON.stringify(duplicatedMeta, null, 2)}\n`)
+      sendJson(res, 200, {uuid: newUuid, meta: duplicatedMeta})
+      return
+    }
+    methodNotAllowed(res, ["POST"])
+    return
+  }
+  if (segments.length === 2 && resource === "restore") {
+    if (req.method === "POST") {
+      writeProjectTrash(readProjectTrash().filter(id => id !== uuid))
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["POST"])
+    return
+  }
+  if (segments.length === 2 && resource === "export") {
+    if (req.method === "GET") {
+      const filePath = join(folder, "project.od")
+      if (!existsSync(filePath)) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      const meta = readJson(join(folder, "meta.json"), {name: uuid})
+      const fileName = String(meta.name ?? uuid).replace(/["/\\]/g, "_")
+      sendBinary(res, 200, readFileSync(filePath), {"Content-Disposition": `attachment; filename="${fileName}.od"`})
+      return
+    }
+    methodNotAllowed(res, ["GET"])
+    return
+  }
+  if (segments.length === 2 && resource === "revisions") {
+    if (req.method === "GET") {
+      const revisionsDir = join(folder, "revisions")
+      const list = existsSync(revisionsDir)
+        ? readdirSync(revisionsDir).filter(name => name.endsWith(".od")).map(name => name.replace(/\.od$/, "")).sort().reverse()
+        : []
+      sendJson(res, 200, {revisions: list})
+      return
+    }
+    methodNotAllowed(res, ["GET"])
+    return
+  }
+  if (segments.length === 3 && resource === "revisions") {
+    if (req.method === "GET") {
+      const revisionsDir = join(folder, "revisions")
+      const stamp = revisionStamp.replace(/[^0-9A-Za-z-]/g, "")
+      const filePath = join(revisionsDir, `${stamp}.od`)
+      if (!filePath.startsWith(revisionsDir) || !existsSync(filePath)) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      sendBinary(res, 200, readFileSync(filePath))
+      return
+    }
+    methodNotAllowed(res, ["GET"])
+    return
+  }
+  sendJson(res, 404, {error: "Not found"})
+}
+
 const serveApi = (req, res) => {
   const url = new URL(req.url, "https://localhost")
   if (url.pathname === "/api/server-info") {
@@ -212,7 +476,7 @@ const serveApi = (req, res) => {
         roomRoot,
         factoryAssetRoot,
         roomPersistence: "file",
-        projectPersistence: "browser-opfs-current/server-projects-planned"
+        projectPersistence: "server-files"
       },
       workspaceModel: {
         async: "Projects",
@@ -220,7 +484,7 @@ const serveApi = (req, res) => {
       },
       features: {
         liveRoomPersistence: true,
-        serverProjectLibrary: false,
+        serverProjectLibrary: true,
         adminUsers: false,
         adminSettings: true
       }
@@ -313,6 +577,13 @@ const server = createServer((req, res) => {
   }
   if (req.url?.startsWith("/live")) {
     send(res, 200, {"Content-Type": "text/plain; charset=utf-8"}, "okay")
+    return
+  }
+  if (req.url?.startsWith("/api/projects")) {
+    serveProjectsApi(req, res).catch(error => {
+      console.error(error)
+      sendJson(res, 500, {error: "Internal server error"})
+    })
     return
   }
   if (req.url?.startsWith("/api/") && serveApi(req, res)) {

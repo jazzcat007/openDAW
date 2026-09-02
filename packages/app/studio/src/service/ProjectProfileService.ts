@@ -24,6 +24,7 @@ import {
     ProjectSignals,
     ProjectStorage,
     SampleService,
+    ServerProjects,
     SoundfontService,
     TemplateStorage
 } from "@opendaw/studio-core"
@@ -145,8 +146,14 @@ export class ProjectProfileService {
 
     async load(uuid: UUID.Bytes, meta: ProjectMeta) {
         if (!await this.approveLosingChanges()) {return}
+        const serverAvailable = await ServerProjects.isAvailable()
+        const loadProjectBuffer = async (): Promise<ArrayBuffer> => {
+            if (!serverAvailable) {return ProjectStorage.loadProject(uuid)}
+            const {status, value} = await Promises.tryCatch(ServerProjects.loadProject(uuid))
+            return status === "resolved" ? value : ProjectStorage.loadProject(uuid)
+        }
         const {status, value: project, error} = await Promises.tryCatch(
-            ProjectStorage.loadProject(uuid).then(buffer => Project.loadAnyVersion(this.#env, buffer)))
+            loadProjectBuffer().then(buffer => Project.loadAnyVersion(this.#env, buffer)))
         if (status === "rejected") {
             console.warn(error)
             RuntimeNotifier.notify({message: "Could not load project.", icon: "Warning"})
@@ -154,7 +161,7 @@ export class ProjectProfileService {
         }
         await this.#sampleService.replaceMissingFiles(project.boxGraph, this.#sampleManager)
         await this.#soundfontService.replaceMissingFiles(project.boxGraph, this.#soundfontManager)
-        const cover = await ProjectStorage.loadCover(uuid)
+        const cover = serverAvailable ? await ServerProjects.loadCover(uuid) : await ProjectStorage.loadCover(uuid)
         this.#setProfile(uuid, project, meta, cover, true)
     }
 

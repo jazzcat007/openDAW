@@ -65,6 +65,7 @@ import {
     Recovery,
     RestartWorklet,
     SampleService,
+    ServerProjects,
     SoundfontService,
     StudioPreferences,
     TemplateStorage,
@@ -253,8 +254,11 @@ export class StudioService implements ProjectEnv {
         if (this.#projectProfileService.getValue().ifSome(profile => UUID.equals(profile.uuid, uuid)) === true) {
             await this.closeProject()
         }
-        const {status} = await Promises.tryCatch(ProjectStorage.deleteProject(uuid))
-        if (status === "resolved") {
+        const {status: opfsStatus} = await Promises.tryCatch(ProjectStorage.deleteProject(uuid))
+        const {status: serverStatus} = await ServerProjects.isAvailable()
+            ? await Promises.tryCatch(ServerProjects.deleteProject(uuid))
+            : {status: "resolved" as const}
+        if (opfsStatus === "resolved" || serverStatus === "resolved") {
             this.#signals.notify({type: "delete-project", meta})
         }
     }
