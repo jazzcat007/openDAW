@@ -88,11 +88,70 @@ The current UI is a dense production tool, so the redesign should preserve speed
    - Keep model, FFmpeg, sample, soundfont, and preset URLs local.
    - Audit any remaining `https://api.opendaw.studio`, `assets.opendaw.studio`, `package.opendaw.studio`, `discord.com`, `github.com`, and `npmjs.org` runtime fetches before public exposure.
 
+## Server-First Collaboration Model
+
+The product model is split into two clear modes:
+
+- `Projects` are asynchronous, durable workspaces. They should be listed from the server, saved to the server by default, and available for friends to open later based on membership permissions.
+- `Live Rooms` are synchronous collaboration sessions. They should open from a Project, persist live Yjs state on the server, and periodically snapshot back into the Project history.
+
+Current state:
+
+- Live Room documents are already persisted under `/data/rooms`.
+- Normal project save/load still uses browser OPFS through `ProjectProfile`, `ProjectStorage`, and related storage helpers.
+- Personal samples, soundfonts, presets, scripts, and templates also still use browser OPFS unless they are part of the factory catalog.
+
+Target server data areas:
+
+- `/data/server`: instance settings, users, roles, invites, sessions, admin metadata, and audit logs.
+- `/data/projects`: project bundles, metadata, cover images, snapshots, project membership, and trash/archive state.
+- `/data/rooms`: persisted Live Room Yjs state, room metadata, active-room records, and room-to-project links.
+- `/data/factory`: shared samples, soundfonts, presets, templates, models, and runtime assets.
+
+Implementation phases:
+
+1. Add server control foundation.
+   - Persist instance settings in `/data/server/settings.json`.
+   - Expose authenticated `/api/server-info` and `/api/admin/settings` for future UI wiring.
+   - Keep Basic Auth as the deployment gate until app-level sessions are ready.
+
+2. Make Projects server-backed.
+   - Add project API endpoints for list, create, load, save, duplicate, archive, delete, and export.
+   - Store the project file, metadata, cover image, and revision snapshots under `/data/projects`.
+   - Change the client Project browser and save flow so server storage is the default and OPFS becomes cache/recovery only.
+
+3. Connect Live Rooms to Projects.
+   - Create Live Rooms from a Project, not as anonymous-only documents.
+   - Store room metadata including project id, owner, members, created time, last activity, and current snapshot revision.
+   - Add autosnapshot from Live Room Yjs state back to the linked Project.
+
+4. Add app-level authentication.
+   - Replace shared Basic Auth with individual users.
+   - Use password hashing, signed secure cookies, CSRF protection for mutating routes, and login rate limits.
+   - Keep reverse-proxy auth optional as an extra outer layer.
+
+5. Build the Admin section.
+   - Users: create users, reset passwords, disable users, assign roles.
+   - Invites: one-time invite links for friends.
+   - Projects: ownership, membership, archive/trash, storage usage, export/backup.
+   - Live Rooms: active rooms, participants, stale-room cleanup, force snapshot, close room.
+   - Assets: import queue, sample/soundfont/preset catalogs, license/source metadata.
+   - Settings: site name, registration policy, default project visibility, storage quotas, factory offline mode, backup target, retention policy.
+   - Audit: login events, admin changes, destructive project actions, import jobs.
+
+6. Harden storage and recovery.
+   - Atomic writes for project snapshots and admin JSON.
+   - Scheduled backups of `/data/server`, `/data/projects`, `/data/rooms`, and `/data/factory`.
+   - Per-project export bundles so no work is locked into the server.
+   - Recovery path for browser OPFS drafts that have not synced yet.
+
 ## Immediate Next Steps
 
-1. Enable auth credentials in deployment.
-2. Add `scripts/import-samples.mjs`.
-3. Build an asset intake folder structure on the media volume.
-4. Import a first large SF2 batch.
-5. Create ten starter presets/racks.
-6. Add brand tokens and a small first visual pass.
+1. Wire the client Project browser to server project list/load/save APIs.
+2. Add the Admin shell and route guarded by the existing auth boundary.
+3. Add individual user/session auth behind the Admin shell.
+4. Link Live Rooms to server Projects and autosnapshot them.
+5. Build an asset intake folder structure on the media volume.
+6. Import the first large sample and SF2 batches.
+7. Create ten starter presets/racks.
+8. Continue the retro-future synthwave UI pass.

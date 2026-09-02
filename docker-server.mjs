@@ -1,4 +1,4 @@
-import {createReadStream, existsSync, mkdirSync, readFileSync, statSync} from "node:fs"
+import {createReadStream, existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from "node:fs"
 import {writeFile} from "node:fs/promises"
 import {createServer} from "node:http"
 import {extname, join, normalize} from "node:path"
@@ -9,7 +9,9 @@ import * as map from "lib0/map"
 
 const root = "/app/packages/app/studio/dist"
 const factoryAssetRoot = process.env.FACTORY_ASSET_ROOT ?? "/data/factory"
+const projectRoot = process.env.OPENDAW_PROJECT_ROOT ?? "/data/projects"
 const roomRoot = process.env.OPENDAW_ROOM_ROOT ?? "/data/rooms"
+const serverRoot = process.env.OPENDAW_SERVER_ROOT ?? "/data/server"
 const factoryOfflineOnly = process.env.OPENDAW_FACTORY_OFFLINE_ONLY === "true"
 const upstreamAssets = "https://assets.opendaw.studio"
 const upstreamUsername = process.env.OPENDAW_UPSTREAM_ASSET_USERNAME ?? "openDAW"
@@ -23,6 +25,61 @@ const rooms = new Map()
 const roomCleanupTimers = new Map()
 
 mkdirSync(roomRoot, {recursive: true})
+mkdirSync(projectRoot, {recursive: true})
+mkdirSync(serverRoot, {recursive: true})
+
+const settingsFile = join(serverRoot, "settings.json")
+const usersFile = join(serverRoot, "users.json")
+
+const readJson = (file, fallback) => {
+  if (!existsSync(file)) return fallback
+  try {
+    return JSON.parse(readFileSync(file, "utf8"))
+  } catch (error) {
+    console.error(`Failed to read ${file}:`, error)
+    return fallback
+  }
+}
+
+const writeJsonIfMissing = (file, value) => {
+  if (existsSync(file)) return
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`)
+}
+
+const defaultSettings = {
+  siteName: "ScrewPulp DAW",
+  storageMode: "server-first-planned",
+  projectDefaults: {
+    visibility: "private",
+    autosave: true,
+    browserStorageRole: "cache-and-recovery"
+  },
+  asyncWorkspace: {
+    label: "Projects",
+    persistence: "server-snapshots-planned"
+  },
+  collaboration: {
+    label: "Live Rooms",
+    liveRoomsPersisted: true,
+    defaultRoomAccess: "project-members"
+  },
+  assets: {
+    factoryOfflineOnly,
+    localFactoryRoot: factoryAssetRoot
+  }
+}
+
+const defaultUsers = {
+  bootstrapAdmins: authEnabled ? [{
+    username: siteUsername,
+    role: "admin",
+    source: "OPENDAW_AUTH_USERNAME"
+  }] : [],
+  users: []
+}
+
+writeJsonIfMissing(settingsFile, defaultSettings)
+writeJsonIfMissing(usersFile, defaultUsers)
 
 const roomFilePath = (docName) => {
   const safeName = Buffer.from(docName, "utf8").toString("base64url")
@@ -96,6 +153,10 @@ const sendJson = (res, status, value) => {
   send(res, status, {"Content-Type": "application/json; charset=utf-8"}, JSON.stringify(value))
 }
 
+const methodNotAllowed = (res, allowed) => {
+  sendJson(res, 405, {error: "Method not allowed", allowed})
+}
+
 const unauthorized = (res) => {
   send(res, 401, {
     "Content-Type": "text/plain; charset=utf-8",
@@ -132,6 +193,56 @@ const serveStatic = (req, res) => {
   const type = mime.get(extname(file)) ?? "application/octet-stream"
   res.writeHead(200, {...commonHeaders, "Content-Type": type})
   createReadStream(file).pipe(res)
+}
+
+const serveApi = (req, res) => {
+  const url = new URL(req.url, "https://localhost")
+  if (url.pathname === "/api/server-info") {
+    if (req.method !== "GET") {
+      methodNotAllowed(res, ["GET"])
+      return true
+    }
+    sendJson(res, 200, {
+      name: "ScrewPulp DAW",
+      mode: "self-hosted",
+      auth: authEnabled ? "basic" : "disabled",
+      storage: {
+        serverRoot,
+        projectRoot,
+        roomRoot,
+        factoryAssetRoot,
+        roomPersistence: "file",
+        projectPersistence: "browser-opfs-current/server-projects-planned"
+      },
+      workspaceModel: {
+        async: "Projects",
+        sync: "Live Rooms"
+      },
+      features: {
+        liveRoomPersistence: true,
+        serverProjectLibrary: false,
+        adminUsers: false,
+        adminSettings: true
+      }
+    })
+    return true
+  }
+  if (url.pathname === "/api/admin/settings") {
+    if (req.method !== "GET") {
+      methodNotAllowed(res, ["GET"])
+      return true
+    }
+    sendJson(res, 200, {
+      settings: readJson(settingsFile, defaultSettings),
+      identity: readJson(usersFile, defaultUsers)
+    })
+    return true
+  }
+  if (url.pathname.startsWith("/api/")) {
+    sendJson(res, 404, {error: "Not found"})
+    return true
+  }
+  return false
 }
 
 const serveLocalFactory = (req, res) => {
@@ -202,6 +313,9 @@ const server = createServer((req, res) => {
   }
   if (req.url?.startsWith("/live")) {
     send(res, 200, {"Content-Type": "text/plain; charset=utf-8"}, "okay")
+    return
+  }
+  if (req.url?.startsWith("/api/") && serveApi(req, res)) {
     return
   }
   if (req.url?.startsWith("/factory/")) {

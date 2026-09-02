@@ -13,9 +13,11 @@ services:
       OPENDAW_FACTORY_OFFLINE_ONLY: "true"
       OPENDAW_AUTH_USERNAME: ${OPENDAW_AUTH_USERNAME:-}
       OPENDAW_AUTH_PASSWORD: ${OPENDAW_AUTH_PASSWORD:-}
+      OPENDAW_SERVER_ROOT: /data/server
       OPENDAW_PROJECT_ROOT: /data/projects
       OPENDAW_ROOM_ROOT: /data/rooms
     volumes:
       - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/factory:/data/factory
+      - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/server:/data/server
       - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/projects:/data/projects
       - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/rooms:/data/rooms
