@@ -26,6 +26,7 @@ import {JoinRoomPage} from "@/ui/pages/JoinRoomPage"
 import {PerformancePage} from "@/ui/pages/PerformancePage"
 import {SampleReadPage} from "@/ui/pages/SampleReadPage"
 import {SpikeTestPage} from "@/ui/pages/SpikeTestPage"
+import {AdminPage} from "@/ui/pages/AdminPage"
 
 export const App = (service: StudioService) => {
     const terminator = new Terminator()
@@ -63,6 +64,7 @@ export const App = (service: StudioService) => {
                     {path: "/colors", factory: ColorsPage},
                     {path: "/graph", factory: GraphPage},
                     {path: "/stats", factory: DashboardPage},
+                    {path: "/admin", factory: AdminPage},
                     {
                         path: "/users", factory: (context) => {
                             history.replaceState(null, "", "/stats")

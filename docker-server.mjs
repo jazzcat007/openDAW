@@ -4,7 +4,7 @@ import {
 } from "node:fs"
 import {writeFile} from "node:fs/promises"
 import {createServer} from "node:http"
-import {randomUUID} from "node:crypto"
+import {randomBytes, randomUUID, scryptSync, timingSafeEqual} from "node:crypto"
 import {extname, join, normalize} from "node:path"
 import {WebSocketServer} from "ws"
 import * as Y from "yjs"
@@ -55,7 +55,7 @@ const writeJsonIfMissing = (file, value) => {
 }
 
 const defaultSettings = {
-  siteName: "ScrewPulp DAW",
+  siteName: "Metal-Duck Studios",
   storageMode: "server-first-planned",
   projectDefaults: {
     visibility: "private",
@@ -77,17 +77,194 @@ const defaultSettings = {
   }
 }
 
-const defaultUsers = {
-  bootstrapAdmins: authEnabled ? [{
-    username: siteUsername,
-    role: "admin",
-    source: "OPENDAW_AUTH_USERNAME"
-  }] : [],
-  users: []
+writeJsonIfMissing(settingsFile, defaultSettings)
+
+const hashPassword = (password) => {
+  const salt = randomBytes(16)
+  const hash = scryptSync(password, salt, 64)
+  return `scrypt:${salt.toString("hex")}:${hash.toString("hex")}`
 }
 
-writeJsonIfMissing(settingsFile, defaultSettings)
-writeJsonIfMissing(usersFile, defaultUsers)
+const verifyPassword = (password, stored) => {
+  const parts = typeof stored === "string" ? stored.split(":") : []
+  if (parts.length !== 3 || parts[0] !== "scrypt") return false
+  const salt = Buffer.from(parts[1], "hex")
+  const expected = Buffer.from(parts[2], "hex")
+  const actual = scryptSync(password, salt, expected.length)
+  return actual.length === expected.length && timingSafeEqual(actual, expected)
+}
+
+const loadUsers = () => {
+  const raw = readJson(usersFile, {users: []})
+  return Array.isArray(raw.users) ? raw.users.filter(user => typeof user?.passwordHash === "string") : []
+}
+
+let users = loadUsers()
+const persistUsers = () => writeFileSync(usersFile, `${JSON.stringify({users}, null, 2)}\n`)
+
+if (users.length === 0 && authEnabled) {
+  users.push({
+    id: randomUUID(),
+    username: siteUsername,
+    passwordHash: hashPassword(sitePassword),
+    role: "admin",
+    createdAt: new Date().toISOString(),
+    disabledAt: null,
+    lastLoginAt: null
+  })
+  persistUsers()
+  console.log(`Bootstrapped admin user '${siteUsername}' from OPENDAW_AUTH_USERNAME/PASSWORD`)
+} else if (!existsSync(usersFile)) {
+  persistUsers()
+}
+
+const invitesFile = join(serverRoot, "invites.json")
+const loadInvites = () => {
+  const raw = readJson(invitesFile, {invites: []})
+  return Array.isArray(raw.invites) ? raw.invites : []
+}
+let invites = loadInvites()
+const persistInvites = () => writeFileSync(invitesFile, `${JSON.stringify({invites}, null, 2)}\n`)
+
+const sanitizeInvite = (invite) => ({
+  token: invite.token,
+  role: invite.role,
+  createdBy: invite.createdBy,
+  createdAt: invite.createdAt,
+  expiresAt: invite.expiresAt,
+  usedBy: invite.usedBy,
+  usedAt: invite.usedAt
+})
+
+const findValidInvite = (token) => {
+  const invite = invites.find(candidate => candidate.token === token)
+  if (invite === undefined || invite.usedAt !== null || invite.expiresAt < Date.now()) return null
+  return invite
+}
+
+const sessionsFile = join(serverRoot, "sessions.json")
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
+const SESSION_COOKIE = "opendaw_session"
+const sessions = new Map(Object.entries(readJson(sessionsFile, {})))
+
+const persistSessions = () => writeFileSync(sessionsFile, `${JSON.stringify(Object.fromEntries(sessions), null, 2)}\n`)
+
+const pruneSessions = () => {
+  const now = Date.now()
+  let changed = false
+  for (const [token, session] of sessions) {
+    if (session.expiresAt < now) {
+      sessions.delete(token)
+      changed = true
+    }
+  }
+  if (changed) persistSessions()
+}
+pruneSessions()
+
+const createSession = (userId) => {
+  const token = randomBytes(32).toString("hex")
+  sessions.set(token, {userId, createdAt: Date.now(), expiresAt: Date.now() + SESSION_TTL_MS})
+  persistSessions()
+  return token
+}
+
+const destroySession = (token) => {
+  if (sessions.delete(token)) persistSessions()
+}
+
+const destroySessionsForUser = (userId) => {
+  let changed = false
+  for (const [token, session] of sessions) {
+    if (session.userId === userId) {
+      sessions.delete(token)
+      changed = true
+    }
+  }
+  if (changed) persistSessions()
+}
+
+const setSessionCookie = (res, token) => {
+  res.setHeader("Set-Cookie",
+    `${SESSION_COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`)
+}
+
+const clearSessionCookie = (res) => {
+  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`)
+}
+
+const parseCookies = (req) => {
+  const header = req.headers.cookie
+  const cookies = {}
+  if (!header) return cookies
+  header.split(";").forEach(part => {
+    const index = part.indexOf("=")
+    if (index < 0) return
+    cookies[part.slice(0, index).trim()] = decodeURIComponent(part.slice(index + 1).trim())
+  })
+  return cookies
+}
+
+const getSession = (req) => {
+  const token = parseCookies(req)[SESSION_COOKIE]
+  if (!token) return null
+  const session = sessions.get(token)
+  if (!session) return null
+  if (session.expiresAt < Date.now()) {
+    sessions.delete(token)
+    persistSessions()
+    return null
+  }
+  return {token, ...session}
+}
+
+const getCurrentUser = (req) => {
+  const session = getSession(req)
+  if (session === null) return null
+  const user = users.find(candidate => candidate.id === session.userId)
+  if (user === undefined || user.disabledAt !== null) return null
+  return user
+}
+
+// Per (ip, username) sliding window; small friends-and-family scale, in-memory is fine.
+const loginAttempts = new Map()
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
+const LOGIN_MAX_ATTEMPTS = 5
+const loginKey = (req, username) => `${req.socket.remoteAddress}|${username.toLowerCase()}`
+
+const isRateLimited = (key) => {
+  const entry = loginAttempts.get(key)
+  if (!entry) return false
+  if (Date.now() - entry.firstAttempt > LOGIN_WINDOW_MS) {
+    loginAttempts.delete(key)
+    return false
+  }
+  return entry.count >= LOGIN_MAX_ATTEMPTS
+}
+
+const recordFailedAttempt = (key) => {
+  const entry = loginAttempts.get(key)
+  if (!entry || Date.now() - entry.firstAttempt > LOGIN_WINDOW_MS) {
+    loginAttempts.set(key, {firstAttempt: Date.now(), count: 1})
+  } else {
+    entry.count += 1
+  }
+}
+
+const clearAttempts = (key) => loginAttempts.delete(key)
+
+const CSRF_HEADER = "x-opendaw-csrf"
+const requiresCsrfCheck = (method) => method !== "GET" && method !== "HEAD" && method !== "OPTIONS"
+const hasCsrfHeader = (req) => req.headers[CSRF_HEADER] === "1"
+
+const sanitizeUser = (user) => ({
+  id: user.id,
+  username: user.username,
+  role: user.role,
+  createdAt: user.createdAt,
+  disabledAt: user.disabledAt,
+  lastLoginAt: user.lastLoginAt
+})
 
 const roomFilePath = (docName) => {
   const safeName = Buffer.from(docName, "utf8").toString("base64url")
@@ -467,7 +644,7 @@ const serveApi = (req, res) => {
       return true
     }
     sendJson(res, 200, {
-      name: "ScrewPulp DAW",
+      name: "Metal-Duck Studios",
       mode: "self-hosted",
       auth: authEnabled ? "basic" : "disabled",
       storage: {
@@ -485,20 +662,10 @@ const serveApi = (req, res) => {
       features: {
         liveRoomPersistence: true,
         serverProjectLibrary: true,
-        adminUsers: false,
-        adminSettings: true
+        adminUsers: true,
+        adminSettings: true,
+        appAuth: true
       }
-    })
-    return true
-  }
-  if (url.pathname === "/api/admin/settings") {
-    if (req.method !== "GET") {
-      methodNotAllowed(res, ["GET"])
-      return true
-    }
-    sendJson(res, 200, {
-      settings: readJson(settingsFile, defaultSettings),
-      identity: readJson(usersFile, defaultUsers)
     })
     return true
   }
@@ -507,6 +674,300 @@ const serveApi = (req, res) => {
     return true
   }
   return false
+}
+
+const serveAuthApi = async (req, res) => {
+  const url = new URL(req.url, "https://localhost")
+  const segment = url.pathname.replace(/^\/api\/auth\/?/, "")
+  if (segment === "me") {
+    if (req.method !== "GET") {
+      methodNotAllowed(res, ["GET"])
+      return
+    }
+    const user = getCurrentUser(req)
+    if (user !== null) {
+      sendJson(res, 200, {authenticated: true, user: {id: user.id, username: user.username, role: user.role}})
+      return
+    }
+    sendJson(res, 200, {authenticated: false, setupRequired: users.length === 0})
+    return
+  }
+  if (segment.startsWith("invite/")) {
+    if (req.method !== "GET") {
+      methodNotAllowed(res, ["GET"])
+      return
+    }
+    const invite = findValidInvite(segment.slice("invite/".length))
+    sendJson(res, 200, invite === null ? {valid: false} : {valid: true, role: invite.role})
+    return
+  }
+  if (segment === "register") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    const parsed = tryParseJson(await readBody(req, 4096))
+    const token = typeof parsed?.token === "string" ? parsed.token : ""
+    const username = typeof parsed?.username === "string" ? parsed.username.trim() : ""
+    const password = typeof parsed?.password === "string" ? parsed.password : ""
+    const invite = findValidInvite(token)
+    if (invite === null) {
+      sendJson(res, 400, {error: "Invite link is invalid or has expired"})
+      return
+    }
+    if (username.length < 3 || password.length < 8) {
+      sendJson(res, 400, {error: "Username must be at least 3 characters and password at least 8"})
+      return
+    }
+    if (users.some(candidate => candidate.username.toLowerCase() === username.toLowerCase())) {
+      sendJson(res, 409, {error: "Username already exists"})
+      return
+    }
+    const user = {
+      id: randomUUID(), username, passwordHash: hashPassword(password), role: invite.role,
+      createdAt: new Date().toISOString(), disabledAt: null, lastLoginAt: new Date().toISOString()
+    }
+    users.push(user)
+    invite.usedBy = user.id
+    invite.usedAt = new Date().toISOString()
+    persistUsers()
+    persistInvites()
+    setSessionCookie(res, createSession(user.id))
+    sendJson(res, 200, {ok: true, user: sanitizeUser(user)})
+    return
+  }
+  if (segment === "setup") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    if (users.length > 0) {
+      sendJson(res, 409, {error: "Setup already completed"})
+      return
+    }
+    const parsed = tryParseJson(await readBody(req, 4096))
+    const username = typeof parsed?.username === "string" ? parsed.username.trim() : ""
+    const password = typeof parsed?.password === "string" ? parsed.password : ""
+    if (username.length < 3 || password.length < 8) {
+      sendJson(res, 400, {error: "Username must be at least 3 characters and password at least 8"})
+      return
+    }
+    const user = {
+      id: randomUUID(), username, passwordHash: hashPassword(password), role: "admin",
+      createdAt: new Date().toISOString(), disabledAt: null, lastLoginAt: new Date().toISOString()
+    }
+    users.push(user)
+    persistUsers()
+    setSessionCookie(res, createSession(user.id))
+    sendJson(res, 200, {ok: true, user: sanitizeUser(user)})
+    return
+  }
+  if (segment === "login") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    const parsed = tryParseJson(await readBody(req, 4096))
+    const username = typeof parsed?.username === "string" ? parsed.username.trim() : ""
+    const password = typeof parsed?.password === "string" ? parsed.password : ""
+    const key = loginKey(req, username || "unknown")
+    if (isRateLimited(key)) {
+      sendJson(res, 429, {error: "Too many attempts. Please wait and try again."})
+      return
+    }
+    const user = users.find(candidate => candidate.username === username)
+    if (user === undefined || user.disabledAt !== null || !verifyPassword(password, user.passwordHash)) {
+      recordFailedAttempt(key)
+      sendJson(res, 401, {error: "Invalid username or password"})
+      return
+    }
+    clearAttempts(key)
+    user.lastLoginAt = new Date().toISOString()
+    persistUsers()
+    setSessionCookie(res, createSession(user.id))
+    sendJson(res, 200, {ok: true, user: sanitizeUser(user)})
+    return
+  }
+  if (segment === "logout") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    const session = getSession(req)
+    if (session !== null) destroySession(session.token)
+    clearSessionCookie(res)
+    sendJson(res, 200, {ok: true})
+    return
+  }
+  sendJson(res, 404, {error: "Not found"})
+}
+
+const serveAdminApi = async (req, res) => {
+  const currentUser = getCurrentUser(req)
+  if (currentUser === null) {
+    sendJson(res, 401, {error: "Authentication required"})
+    return
+  }
+  if (currentUser.role !== "admin") {
+    sendJson(res, 403, {error: "Admin role required"})
+    return
+  }
+  const url = new URL(req.url, "https://localhost")
+  const segments = url.pathname.replace(/^\/api\/admin\/?/, "").split("/").filter(Boolean)
+  if (segments.length === 1 && segments[0] === "settings") {
+    if (req.method === "GET") {
+      sendJson(res, 200, {settings: readJson(settingsFile, defaultSettings), users: users.map(sanitizeUser)})
+      return
+    }
+    if (req.method === "PUT") {
+      const parsed = tryParseJson(await readBody(req))
+      if (parsed === undefined || typeof parsed !== "object") {
+        sendJson(res, 400, {error: "Invalid JSON"})
+        return
+      }
+      const merged = {...readJson(settingsFile, defaultSettings), ...parsed}
+      writeFileSync(settingsFile, `${JSON.stringify(merged, null, 2)}\n`)
+      sendJson(res, 200, {settings: merged})
+      return
+    }
+    methodNotAllowed(res, ["GET", "PUT"])
+    return
+  }
+  if (segments.length === 1 && segments[0] === "users") {
+    if (req.method === "GET") {
+      sendJson(res, 200, {users: users.map(sanitizeUser)})
+      return
+    }
+    if (req.method === "POST") {
+      const parsed = tryParseJson(await readBody(req, 4096))
+      const username = typeof parsed?.username === "string" ? parsed.username.trim() : ""
+      const password = typeof parsed?.password === "string" ? parsed.password : ""
+      const role = parsed?.role === "admin" ? "admin" : "member"
+      if (username.length < 3 || password.length < 8) {
+        sendJson(res, 400, {error: "Username must be at least 3 characters and password at least 8"})
+        return
+      }
+      if (users.some(candidate => candidate.username.toLowerCase() === username.toLowerCase())) {
+        sendJson(res, 409, {error: "Username already exists"})
+        return
+      }
+      const user = {
+        id: randomUUID(), username, passwordHash: hashPassword(password), role,
+        createdAt: new Date().toISOString(), disabledAt: null, lastLoginAt: null
+      }
+      users.push(user)
+      persistUsers()
+      sendJson(res, 200, {user: sanitizeUser(user)})
+      return
+    }
+    methodNotAllowed(res, ["GET", "POST"])
+    return
+  }
+  if (segments.length === 2 && segments[0] === "users") {
+    const target = users.find(candidate => candidate.id === segments[1])
+    if (target === undefined) {
+      sendJson(res, 404, {error: "Not found"})
+      return
+    }
+    if (req.method === "PUT") {
+      const parsed = tryParseJson(await readBody(req, 4096))
+      if (parsed === undefined || typeof parsed !== "object") {
+        sendJson(res, 400, {error: "Invalid JSON"})
+        return
+      }
+      const activeAdminCount = () => users.filter(candidate => candidate.role === "admin" && candidate.disabledAt === null).length
+      if (typeof parsed.role === "string" && (parsed.role === "admin" || parsed.role === "member")) {
+        if (target.role === "admin" && parsed.role !== "admin" && activeAdminCount() <= 1) {
+          sendJson(res, 400, {error: "Cannot demote the last active admin"})
+          return
+        }
+        target.role = parsed.role
+      }
+      if (typeof parsed.disabled === "boolean") {
+        if (parsed.disabled && target.id === currentUser.id) {
+          sendJson(res, 400, {error: "Cannot disable your own account"})
+          return
+        }
+        if (parsed.disabled && target.role === "admin" && activeAdminCount() <= 1) {
+          sendJson(res, 400, {error: "Cannot disable the last active admin"})
+          return
+        }
+        target.disabledAt = parsed.disabled ? new Date().toISOString() : null
+        if (parsed.disabled) destroySessionsForUser(target.id)
+      }
+      if (typeof parsed.password === "string" && parsed.password.length > 0) {
+        if (parsed.password.length < 8) {
+          sendJson(res, 400, {error: "Password must be at least 8 characters"})
+          return
+        }
+        target.passwordHash = hashPassword(parsed.password)
+        destroySessionsForUser(target.id)
+      }
+      persistUsers()
+      sendJson(res, 200, {user: sanitizeUser(target)})
+      return
+    }
+    if (req.method === "DELETE") {
+      if (target.id === currentUser.id) {
+        sendJson(res, 400, {error: "Cannot delete your own account"})
+        return
+      }
+      if (target.role === "admin" && users.filter(candidate => candidate.role === "admin").length <= 1) {
+        sendJson(res, 400, {error: "Cannot delete the last admin"})
+        return
+      }
+      users = users.filter(candidate => candidate.id !== target.id)
+      persistUsers()
+      destroySessionsForUser(target.id)
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["PUT", "DELETE"])
+    return
+  }
+  if (segments.length === 1 && segments[0] === "invites") {
+    if (req.method === "GET") {
+      sendJson(res, 200, {invites: invites.map(sanitizeInvite)})
+      return
+    }
+    if (req.method === "POST") {
+      const parsed = tryParseJson(await readBody(req, 4096))
+      const role = parsed?.role === "admin" ? "admin" : "member"
+      const expiresInHours = Number.isFinite(parsed?.expiresInHours) && parsed.expiresInHours > 0
+        ? parsed.expiresInHours : 168
+      const invite = {
+        token: randomBytes(16).toString("hex"),
+        role,
+        createdBy: currentUser.id,
+        createdAt: new Date().toISOString(),
+        expiresAt: Date.now() + expiresInHours * 60 * 60 * 1000,
+        usedBy: null,
+        usedAt: null
+      }
+      invites.push(invite)
+      persistInvites()
+      sendJson(res, 200, {invite: sanitizeInvite(invite)})
+      return
+    }
+    methodNotAllowed(res, ["GET", "POST"])
+    return
+  }
+  if (segments.length === 2 && segments[0] === "invites") {
+    if (req.method === "DELETE") {
+      const before = invites.length
+      invites = invites.filter(candidate => candidate.token !== segments[1])
+      if (invites.length === before) {
+        sendJson(res, 404, {error: "Not found"})
+        return
+      }
+      persistInvites()
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["DELETE"])
+    return
+  }
+  sendJson(res, 404, {error: "Not found"})
 }
 
 const serveLocalFactory = (req, res) => {
@@ -575,21 +1036,48 @@ const server = createServer((req, res) => {
     unauthorized(res)
     return
   }
-  if (req.url?.startsWith("/live")) {
+  const url = new URL(req.url ?? "/", "https://localhost")
+  if (url.pathname.startsWith("/api/") && requiresCsrfCheck(req.method) && !hasCsrfHeader(req)) {
+    sendJson(res, 403, {error: "Missing CSRF header"})
+    return
+  }
+  if (url.pathname.startsWith("/api/auth/")) {
+    serveAuthApi(req, res).catch(error => {
+      console.error(error)
+      sendJson(res, 500, {error: "Internal server error"})
+    })
+    return
+  }
+  if (url.pathname.startsWith("/api/admin/")) {
+    serveAdminApi(req, res).catch(error => {
+      console.error(error)
+      sendJson(res, 500, {error: "Internal server error"})
+    })
+    return
+  }
+  if (url.pathname.startsWith("/live")) {
+    if (getCurrentUser(req) === null) {
+      sendJson(res, 401, {error: "Authentication required"})
+      return
+    }
     send(res, 200, {"Content-Type": "text/plain; charset=utf-8"}, "okay")
     return
   }
-  if (req.url?.startsWith("/api/projects")) {
+  if (url.pathname.startsWith("/api/projects")) {
+    if (getCurrentUser(req) === null) {
+      sendJson(res, 401, {error: "Authentication required"})
+      return
+    }
     serveProjectsApi(req, res).catch(error => {
       console.error(error)
       sendJson(res, 500, {error: "Internal server error"})
     })
     return
   }
-  if (req.url?.startsWith("/api/") && serveApi(req, res)) {
+  if (url.pathname.startsWith("/api/") && serveApi(req, res)) {
     return
   }
-  if (req.url?.startsWith("/factory/")) {
+  if (url.pathname.startsWith("/factory/")) {
     proxyFactory(req, res).catch(error => {
       console.error(error)
       send(res, 502, {"Content-Type": "text/plain; charset=utf-8"}, "Factory asset proxy failed")
@@ -697,6 +1185,11 @@ signalingWss.on("connection", (conn, req) => {
 server.on("upgrade", (req, socket, head) => {
   if (!isAuthorized(req)) {
     socket.write("HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"openDAW\", charset=\"UTF-8\"\r\n\r\n")
+    socket.destroy()
+    return
+  }
+  if (getCurrentUser(req) === null) {
+    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n")
     socket.destroy()
     return
   }

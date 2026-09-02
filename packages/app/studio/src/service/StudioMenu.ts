@@ -149,6 +149,10 @@ export const populateStudioMenu = (service: StudioService) => {
                         label: "Statistics",
                         icon: IconSymbol.Charts
                     }).setTriggerProcedure(() => RouteLocation.get().navigateTo("/stats")),
+                    MenuItem.default({
+                        label: "Admin",
+                        icon: IconSymbol.System
+                    }).setTriggerProcedure(() => RouteLocation.get().navigateTo("/admin")),
                     createDebugMenu(service)
                 )
             }

@@ -1,0 +1,299 @@
+import css from "./AdminPage.sass?inline"
+import {createElement, PageContext, PageFactory, replaceChildren} from "@opendaw/lib-jsx"
+import {Lifecycle} from "@opendaw/lib-std"
+import {StudioService} from "@/service/StudioService.ts"
+import {BackButton} from "@/ui/pages/BackButton"
+import {Html} from "@opendaw/lib-dom"
+import {AdminApi} from "@/admin/AdminApi"
+import {Button} from "@/ui/components/Button"
+import {Colors} from "@opendaw/studio-enums"
+
+const className = Html.adoptStyleSheet(css, "AdminPage")
+
+const formatDate = (iso: string | null): string => iso === null ? "—" : new Date(iso).toLocaleString()
+
+const AccessDenied = ({service}: { service: StudioService }) => (
+    <div className={className}>
+        <BackButton service={service}/>
+        <h1>Admin</h1>
+        <p>You must be signed in as an admin to view this page.</p>
+    </div>
+)
+
+const UsersSection = (lifecycle: Lifecycle, currentUserId: string,
+                      initialUsers: ReadonlyArray<AdminApi.User>): HTMLElement => {
+    const errorLine: HTMLElement = <div className="error"/>
+    const body: HTMLTableSectionElement = <tbody/>
+    const showError = (reason: unknown) =>
+        errorLine.textContent = reason instanceof Error ? reason.message : String(reason)
+
+    const reload = async () => {
+        errorLine.textContent = ""
+        try {
+            renderRows(await AdminApi.listUsers())
+        } catch (reason) {
+            showError(reason)
+        }
+    }
+
+    const renderRow = (user: AdminApi.User): HTMLTableRowElement => {
+        const isSelf = user.id === currentUserId
+        const disabled = user.disabledAt !== null
+        const roleSelect: HTMLSelectElement = (
+            <select disabled={isSelf}>
+                <option value="member" selected={user.role === "member"}>member</option>
+                <option value="admin" selected={user.role === "admin"}>admin</option>
+            </select>
+        ) as HTMLSelectElement
+        roleSelect.addEventListener("change", async () => {
+            try {
+                await AdminApi.updateUser(user.id, {role: roleSelect.value as AdminApi.Role})
+                await reload()
+            } catch (reason) {
+                showError(reason)
+            }
+        })
+        return (
+            <tr>
+                <td>{user.username}{isSelf ? " (you)" : ""}</td>
+                <td>{roleSelect}</td>
+                <td>{disabled ? "disabled" : "active"}</td>
+                <td>{formatDate(user.lastLoginAt)}</td>
+                <td className="actions">
+                    {isSelf ? null : (
+                        <Button lifecycle={lifecycle} onClick={async () => {
+                            try {
+                                await AdminApi.updateUser(user.id, {disabled: !disabled})
+                                await reload()
+                            } catch (reason) {
+                                showError(reason)
+                            }
+                        }} appearance={{color: disabled ? Colors.green : Colors.yellow}}>
+                            {disabled ? "ENABLE" : "DISABLE"}
+                        </Button>
+                    )}
+                    <Button lifecycle={lifecycle} onClick={async () => {
+                        const password = prompt(`New password for '${user.username}' (min 8 characters):`)
+                        if (password === null || password.length === 0) {return}
+                        try {
+                            await AdminApi.updateUser(user.id, {password})
+                            await reload()
+                        } catch (reason) {
+                            showError(reason)
+                        }
+                    }} appearance={{color: Colors.cream}}>RESET PASSWORD</Button>
+                    {isSelf ? null : (
+                        <Button lifecycle={lifecycle} onClick={async () => {
+                            if (!confirm(`Delete user '${user.username}'? This cannot be undone.`)) {return}
+                            try {
+                                await AdminApi.deleteUser(user.id)
+                                await reload()
+                            } catch (reason) {
+                                showError(reason)
+                            }
+                        }} appearance={{color: Colors.red}}>DELETE</Button>
+                    )}
+                </td>
+            </tr>
+        )
+    }
+
+    const renderRows = (list: ReadonlyArray<AdminApi.User>) => replaceChildren(body, ...list.map(renderRow))
+    renderRows(initialUsers)
+
+    const usernameInput: HTMLInputElement = <input placeholder="Username" required minlength="3"/> as HTMLInputElement
+    const passwordInput: HTMLInputElement =
+        <input type="password" placeholder="Password (min 8 chars)" required minlength="8"/> as HTMLInputElement
+    const roleInput: HTMLSelectElement = (
+        <select>
+            <option value="member" selected>member</option>
+            <option value="admin">admin</option>
+        </select>
+    ) as HTMLSelectElement
+    const createForm: HTMLFormElement = (
+        <form className="create-user" onsubmit={async (event: Event) => {
+            event.preventDefault()
+            try {
+                await AdminApi.createUser(usernameInput.value.trim(), passwordInput.value, roleInput.value as AdminApi.Role)
+                usernameInput.value = ""
+                passwordInput.value = ""
+                await reload()
+            } catch (reason) {
+                showError(reason)
+            }
+        }}>
+            {usernameInput}
+            {passwordInput}
+            {roleInput}
+            <button type="submit">ADD USER</button>
+        </form>
+    ) as HTMLFormElement
+
+    return (
+        <section className="users">
+            <h2>Users</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th/>
+                </tr>
+                </thead>
+                {body}
+            </table>
+            {createForm}
+            {errorLine}
+        </section>
+    )
+}
+
+const SettingsSection = (initialSettings: AdminApi.Settings): HTMLElement => {
+    const errorLine: HTMLElement = <div className="error"/>
+    const savedLine: HTMLElement = <div className="saved"/>
+    const siteNameInput: HTMLInputElement = <input value={initialSettings.siteName} required/> as HTMLInputElement
+    const dump: HTMLPreElement = <pre>{JSON.stringify(initialSettings, null, 2)}</pre> as HTMLPreElement
+    const form: HTMLFormElement = (
+        <form className="settings" onsubmit={async (event: Event) => {
+            event.preventDefault()
+            errorLine.textContent = ""
+            savedLine.textContent = ""
+            try {
+                const settings = await AdminApi.updateSettings({siteName: siteNameInput.value.trim()})
+                dump.textContent = JSON.stringify(settings, null, 2)
+                savedLine.textContent = "Saved."
+            } catch (reason) {
+                errorLine.textContent = reason instanceof Error ? reason.message : String(reason)
+            }
+        }}>
+            <label>Site Name<br/>{siteNameInput}</label>
+            <button type="submit">SAVE</button>
+            {savedLine}
+        </form>
+    ) as HTMLFormElement
+    return (
+        <section className="settings-section">
+            <h2>Settings</h2>
+            {form}
+            {errorLine}
+            <h3>Full Settings (read-only)</h3>
+            {dump}
+        </section>
+    )
+}
+
+const InvitesSection = (initialInvites: ReadonlyArray<AdminApi.Invite>): HTMLElement => {
+    const errorLine: HTMLElement = <div className="error"/>
+    const body: HTMLTableSectionElement = <tbody/>
+    const showError = (reason: unknown) =>
+        errorLine.textContent = reason instanceof Error ? reason.message : String(reason)
+
+    const reload = async () => {
+        errorLine.textContent = ""
+        try {
+            renderRows(await AdminApi.listInvites())
+        } catch (reason) {
+            showError(reason)
+        }
+    }
+
+    const inviteUrl = (token: string): string => `${location.origin}/?invite=${token}`
+
+    const renderRow = (invite: AdminApi.Invite): HTMLTableRowElement => {
+        const expired = invite.expiresAt < Date.now()
+        const status = invite.usedAt !== null ? "used" : expired ? "expired" : "open"
+        const copyButton: HTMLButtonElement = (
+            <button type="button" disabled={status !== "open"} onclick={() =>
+                navigator.clipboard.writeText(inviteUrl(invite.token)).catch(() => {})}>COPY LINK</button>
+        ) as HTMLButtonElement
+        const revokeButton: HTMLButtonElement = (
+            <button type="button" disabled={status !== "open"} onclick={async () => {
+                if (!confirm("Revoke this invite link?")) {return}
+                try {
+                    await AdminApi.revokeInvite(invite.token)
+                    await reload()
+                } catch (reason) {
+                    showError(reason)
+                }
+            }}>REVOKE</button>
+        ) as HTMLButtonElement
+        return (
+            <tr>
+                <td>{invite.role}</td>
+                <td>{status}</td>
+                <td>{formatDate(new Date(invite.expiresAt).toISOString())}</td>
+                <td className="actions">{copyButton}{revokeButton}</td>
+            </tr>
+        )
+    }
+
+    const renderRows = (list: ReadonlyArray<AdminApi.Invite>) => replaceChildren(body, ...list.map(renderRow))
+    renderRows(initialInvites)
+
+    const roleInput: HTMLSelectElement = (
+        <select>
+            <option value="member" selected>member</option>
+            <option value="admin">admin</option>
+        </select>
+    ) as HTMLSelectElement
+    const expiryInput: HTMLInputElement =
+        <input type="number" value="168" min="1" required/> as HTMLInputElement
+    const createForm: HTMLFormElement = (
+        <form className="create-invite" onsubmit={async (event: Event) => {
+            event.preventDefault()
+            try {
+                const invite = await AdminApi.createInvite(roleInput.value as AdminApi.Role, Number(expiryInput.value))
+                await navigator.clipboard.writeText(inviteUrl(invite.token)).catch(() => {})
+                await reload()
+            } catch (reason) {
+                showError(reason)
+            }
+        }}>
+            {roleInput}
+            <label>Expires in (hours)<br/>{expiryInput}</label>
+            <button type="submit">CREATE &amp; COPY LINK</button>
+        </form>
+    ) as HTMLFormElement
+
+    return (
+        <section className="invites">
+            <h2>Invites</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Expires</th>
+                    <th/>
+                </tr>
+                </thead>
+                {body}
+            </table>
+            {createForm}
+            {errorLine}
+        </section>
+    )
+}
+
+export const AdminPage: PageFactory<StudioService> = async ({service, lifecycle}: PageContext<StudioService>) => {
+    const me = await AdminApi.me()
+    if (!me.authenticated || me.user?.role !== "admin") {
+        return AccessDenied({service})
+    }
+    const {settings, users} = await AdminApi.fetchSettings()
+    const invites = await AdminApi.listInvites()
+    return (
+        <div className={className}>
+            <BackButton service={service}/>
+            <h1>Admin</h1>
+            <p className="signed-in-as">Signed in as <strong>{me.user.username}</strong> (admin)</p>
+            <div className="sections">
+                {UsersSection(lifecycle, me.user.id, users)}
+                {InvitesSection(invites)}
+                {SettingsSection(settings)}
+            </div>
+        </div>
+    )
+}

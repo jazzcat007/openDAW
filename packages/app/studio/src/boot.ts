@@ -45,6 +45,7 @@ import {StudioShortcutManager} from "@/service/StudioShortcutManager"
 import {Menu} from "@/ui/components/Menu"
 import {TouchContextMenu} from "@/ui/TouchContextMenu"
 import {WasmEngine} from "@opendaw/studio-core-wasm"
+import {ensureAuthenticated} from "@/auth/AuthGate"
 
 if ("stackTraceLimit" in Error) {Error.stackTraceLimit = 50}
 
@@ -56,6 +57,7 @@ export const boot = async ({workersUrl, workletsUrl, wasmProcessorUrl, wasmOffli
     workersUrl: string, workletsUrl: string
     wasmProcessorUrl: string, wasmOfflineWorkerUrl: string
 }) => {
+    if (!await ensureAuthenticated()) {return}
     console.debug("booting...")
     console.debug(location.origin)
     const {status, value: buildInfo} = await Promises.tryCatch(loadBuildInfo())

@@ -42,7 +42,7 @@ The quickest path to a richer self-hosted studio is to grow the catalog first, b
 
 ## Design Overhaul
 
-Direction: retro-future synthwave, under the working brand `ScrewPulp DAW`.
+Direction: retro-future synthwave, under the working brand `Metal-Duck Studios`.
 
 The current UI is a dense production tool, so the redesign should preserve speed and scanability rather than turning it into a landing page.
 
@@ -126,18 +126,19 @@ Implementation phases:
    - Store room metadata including project id, owner, members, created time, last activity, and current snapshot revision.
    - Add autosnapshot from Live Room Yjs state back to the linked Project.
 
-4. Add app-level authentication.
-   - Replace shared Basic Auth with individual users.
-   - Use password hashing, signed secure cookies, CSRF protection for mutating routes, and login rate limits.
-   - Keep reverse-proxy auth optional as an extra outer layer.
+4. Add app-level authentication. **(done)**
+   - Replace shared Basic Auth with individual users (scrypt password hashing, real `users.json`).
+   - Signed secure session cookies (`opendaw_session`, server-side revocable), CSRF header check on mutating routes, and login rate limits.
+   - Keep reverse-proxy Basic Auth optional as an extra outer layer (unchanged, still layered in front).
+   - Remaining gap: no Admin UI yet, only the API — see phase 5.
 
 5. Build the Admin section.
-   - Users: create users, reset passwords, disable users, assign roles.
-   - Invites: one-time invite links for friends.
+   - Users: create users, reset passwords, disable users, assign roles. **(done: `/admin` page + `/api/admin/users`)**
+   - Invites: one-time invite links for friends. **(done: `/admin` Invites tab + `/api/admin/invites` + `/api/auth/{invite,register}`)**
    - Projects: ownership, membership, archive/trash, storage usage, export/backup.
    - Live Rooms: active rooms, participants, stale-room cleanup, force snapshot, close room.
    - Assets: import queue, sample/soundfont/preset catalogs, license/source metadata.
-   - Settings: site name, registration policy, default project visibility, storage quotas, factory offline mode, backup target, retention policy.
+   - Settings: site name, registration policy, default project visibility, storage quotas, factory offline mode, backup target, retention policy. **(partial: site name editable on `/admin`, rest read-only/TODO)**
    - Audit: login events, admin changes, destructive project actions, import jobs.
 
 6. Harden storage and recovery.
@@ -146,13 +147,54 @@ Implementation phases:
    - Per-project export bundles so no work is locked into the server.
    - Recovery path for browser OPFS drafts that have not synced yet.
 
+## DAW Import/Export
+
+Goal: let people bring projects in from, and take projects out to, the DAWs they already use.
+
+Current state:
+
+- **DAWproject** (the open Bitwig-authored interchange format, `packages/lib/dawproject` + `packages/studio/core/src/dawproject`) is already shipped: `openDAW menu > Export/Import > DAWproject...`. It round-trips tracks, clips, notes, automation, tempo/time signature, audio files, and sends/routing.
+- **Standard MIDI files** (`.mid`) already import/export per track, region, and clip (`MidiImport.ts`, `NoteMidiExport.ts`).
+- DAWproject itself is only natively supported by a handful of DAWs: Bitwig Studio, PreSonus Studio One, Steinberg Cubase/Nuendo (13+), and Tracktion Waveform, plus community extensions for Reaper/Ardour. **Ableton Live and FL Studio — the two DAWs most likely to be a newcomer's "previous DAW" — support neither DAWproject nor any open project format**, so this path can't reach them regardless of how much DAWproject work is done.
+- DAWproject device/FX fidelity is currently asymmetric and incomplete:
+  - On import, only the standard `EqualizerSchema` is mapped to a native device (into Revamp); every other foreign plugin or built-in device becomes an "Unknown FX" placeholder box (`DawProjectImporter.ts`, tagged with a ⚠️ comment).
+  - On export, every openDAW device is written as an opaque `deviceVendor: "openDAW"` blob that only openDAW itself can decode (`DawProjectExporter.ts`) — a project reopened in Bitwig or Cubase will show unrecognized plugins on every track.
+  - Round-tripping openDAW's own devices through DAWproject (openDAW → DAWproject → openDAW) is implemented but currently disabled behind a `TODO`, due to a known bug that produces an invalid host pointer (`DawProjectImporter.ts`).
+  - The `lib-dawproject` schema itself only models `EqualizerSchema` as a typed built-in device; the DAWproject spec's other standard device types (compressor, limiter, gate, etc.) aren't represented yet, so there's nothing to map onto even before touching the importer/exporter.
+
+Proposed phases:
+
+1. Fix DAWproject fidelity for openDAW-to-openDAW round trips first.
+   - Re-enable and fix the native-device roundtrip path so an openDAW project exported to DAWproject and reimported into openDAW loses nothing (currently every device degrades to Unknown FX).
+   - Add regression tests using real files exported from at least one third-party app (Bitwig or Studio One) rather than only self-generated fixtures.
+
+2. Extend `lib-dawproject`'s device schema coverage.
+   - Model the DAWproject spec's other standard built-in device types (compressor, limiter, gate) alongside the existing `EqualizerSchema`.
+   - Map them to/from the closest native openDAW device, the way `BuiltinDevices.equalizer` already does for EQ.
+   - For anything with no native equivalent, keep the Unknown FX fallback but make it visible in the UI (not just a code comment) so users know a plugin didn't transfer.
+
+3. Add Ableton Live (`.als`) import.
+   - `.als` is gzipped XML; undocumented but well reverse-engineered by existing open-source parsers.
+   - Scope to import-only: track/clip/note/automation structure and audio references. Non-native devices fall back to Unknown FX, same as foreign DAWproject plugins.
+   - Writing `.als` is high-risk (undocumented, easy to produce files Live can't open) — not worth attempting.
+
+4. Add FL Studio (`.flp`) import.
+   - Proprietary binary format, but has a maintained open-source parser spec (`pyflp`) covering channels, playlist, patterns, and automation.
+   - Same import-only scope and Unknown FX fallback as Ableton.
+
+5. Consider Reaper (`.rpp`) as a lower-effort extra.
+   - `.rpp` is a human-readable text tree, one of the simpler proprietary formats to parse, and Reaper's user base overlaps with the self-hosted/power-user crowd this fork targets.
+   - Could realistically support both import and export given the format's simplicity, unlike Live/FL Studio.
+
 ## Immediate Next Steps
 
 1. ~~Wire the client Project browser to server project list/load/save APIs.~~ **(done)**
-2. Add the Admin shell and route guarded by the existing auth boundary.
-3. Add individual user/session auth behind the Admin shell.
-4. Link Live Rooms to server Projects and autosnapshot them.
-5. Build an asset intake folder structure on the media volume.
-6. Import the first large sample and SF2 batches.
-7. Create ten starter presets/racks.
-8. Continue the retro-future synthwave UI pass.
+2. ~~Add individual user/session auth (server-side foundation + login/setup gate).~~ **(done)**
+3. ~~Add the Admin shell UI (Users, Invites, Settings) on `/admin`.~~ **(done; Audit tab still open)**
+4. ~~Add invite links so friends can self-register instead of an admin calling `/api/admin/users` directly.~~ **(done)**
+5. Link Live Rooms to server Projects and autosnapshot them.
+6. Build an asset intake folder structure on the media volume.
+7. Import the first large sample and SF2 batches.
+8. Create ten starter presets/racks.
+9. Continue the retro-future synthwave UI pass.
+10. Fix the disabled native-device DAWproject roundtrip bug (see DAW Import/Export).

@@ -1,6 +1,9 @@
 import {JSONValue, Option, panic, UUID} from "@opendaw/lib-std"
 import {ProjectMeta} from "./ProjectMeta"
 
+// Required on every mutating request; enforced server-side as a lightweight CSRF guard alongside session cookies.
+const CsrfHeader = {"X-OpenDAW-Csrf": "1"}
+
 // Server-backed Projects API (server is the source of truth; OPFS is cache/recovery only).
 export namespace ServerProjects {
     export type ListEntry = { uuid: UUID.Bytes, meta: ProjectMeta }
@@ -38,7 +41,7 @@ export namespace ServerProjects {
     export const createProject = async (meta: ProjectMeta): Promise<UUID.Bytes> => {
         const response = await fetch("/api/projects", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {"Content-Type": "application/json", ...CsrfHeader},
             body: JSON.stringify({meta})
         })
         if (!response.ok) {return panic(`Failed to create project (${response.status})`)}
@@ -52,27 +55,28 @@ export namespace ServerProjects {
                                       cover: Option<ArrayBuffer>): Promise<void> => {
         const uuidString = UUID.toString(uuid)
         const requests: Array<Promise<Response>> = [
-            fetch(`/api/projects/${uuidString}/file`, {method: "PUT", body: project}),
+            fetch(`/api/projects/${uuidString}/file`, {method: "PUT", headers: CsrfHeader, body: project}),
             fetch(`/api/projects/${uuidString}/meta`, {
                 method: "PUT",
-                headers: {"Content-Type": "application/json"},
+                headers: {"Content-Type": "application/json", ...CsrfHeader},
                 body: JSON.stringify(meta)
             })
         ]
-        cover.ifSome(bytes => requests.push(fetch(`/api/projects/${uuidString}/cover`, {method: "PUT", body: bytes})))
+        cover.ifSome(bytes => requests.push(fetch(`/api/projects/${uuidString}/cover`,
+            {method: "PUT", headers: CsrfHeader, body: bytes})))
         const responses = await Promise.all(requests)
         if (responses.some(response => !response.ok)) {return panic("Failed to save project to server")}
     }
 
     export const duplicateProject = async (uuid: UUID.Bytes): Promise<UUID.Bytes> => {
-        const response = await fetch(`/api/projects/${UUID.toString(uuid)}/duplicate`, {method: "POST"})
+        const response = await fetch(`/api/projects/${UUID.toString(uuid)}/duplicate`, {method: "POST", headers: CsrfHeader})
         if (!response.ok) {return panic(`Failed to duplicate project (${response.status})`)}
         const {uuid: newUuid} = await response.json() as { uuid: string }
         return UUID.parse(newUuid)
     }
 
     export const deleteProject = async (uuid: UUID.Bytes): Promise<void> => {
-        const response = await fetch(`/api/projects/${UUID.toString(uuid)}`, {method: "DELETE"})
+        const response = await fetch(`/api/projects/${UUID.toString(uuid)}`, {method: "DELETE", headers: CsrfHeader})
         if (!response.ok) {return panic(`Failed to delete project (${response.status})`)}
     }
 
