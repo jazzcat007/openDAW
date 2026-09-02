@@ -21,13 +21,13 @@ export namespace ColorCodes {
     export const forTrackType = (type?: TrackType): number => {
         switch (type) {
             case TrackType.Audio:
-                return 200
+                return 187
             case TrackType.Notes:
-                return 45
+                return 309
             case TrackType.Value:
-                return 156
+                return 158
             default:
-                return 0
+                return 252
         }
     }
 }

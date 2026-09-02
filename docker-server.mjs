@@ -12,9 +12,12 @@ const factoryAssetRoot = process.env.FACTORY_ASSET_ROOT ?? "/data/factory"
 const roomRoot = process.env.OPENDAW_ROOM_ROOT ?? "/data/rooms"
 const factoryOfflineOnly = process.env.OPENDAW_FACTORY_OFFLINE_ONLY === "true"
 const upstreamAssets = "https://assets.opendaw.studio"
-const username = "openDAW"
-const password = "prototype"
-const auth = Buffer.from(`${username}:${password}`).toString("base64")
+const upstreamUsername = process.env.OPENDAW_UPSTREAM_ASSET_USERNAME ?? "openDAW"
+const upstreamPassword = process.env.OPENDAW_UPSTREAM_ASSET_PASSWORD ?? "prototype"
+const upstreamAuth = Buffer.from(`${upstreamUsername}:${upstreamPassword}`).toString("base64")
+const siteUsername = process.env.OPENDAW_AUTH_USERNAME
+const sitePassword = process.env.OPENDAW_AUTH_PASSWORD
+const authEnabled = siteUsername !== undefined && sitePassword !== undefined
 const rooms = new Map()
 const roomCleanupTimers = new Map()
 
@@ -92,6 +95,25 @@ const sendJson = (res, status, value) => {
   send(res, status, {"Content-Type": "application/json; charset=utf-8"}, JSON.stringify(value))
 }
 
+const unauthorized = (res) => {
+  send(res, 401, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "WWW-Authenticate": 'Basic realm="openDAW", charset="UTF-8"'
+  }, "Authentication required")
+}
+
+const isAuthorized = (req) => {
+  if (!authEnabled) return true
+  const header = req.headers.authorization
+  if (!header?.startsWith("Basic ")) return false
+  const decoded = Buffer.from(header.slice("Basic ".length), "base64").toString("utf8")
+  const separator = decoded.indexOf(":")
+  if (separator < 0) return false
+  const username = decoded.slice(0, separator)
+  const password = decoded.slice(separator + 1)
+  return username === siteUsername && password === sitePassword
+}
+
 const serveStatic = (req, res) => {
   const url = new URL(req.url, "https://localhost")
   const requestPath = decodeURIComponent(url.pathname)
@@ -146,7 +168,7 @@ const proxyFactory = async (req, res) => {
   const upstreamPath = url.pathname.replace(/^\/factory/, "")
   const upstreamUrl = `${upstreamAssets}${upstreamPath}${url.search}`
   const response = await fetch(upstreamUrl, {
-    headers: {"Authorization": `Basic ${auth}`}
+    headers: {"Authorization": `Basic ${upstreamAuth}`}
   })
   const headers = {
     "Content-Type": response.headers.get("content-type") ?? "application/octet-stream",
@@ -173,6 +195,10 @@ const proxyFactory = async (req, res) => {
 }
 
 const server = createServer((req, res) => {
+  if (!isAuthorized(req)) {
+    unauthorized(res)
+    return
+  }
   if (req.url?.startsWith("/live")) {
     send(res, 200, {"Content-Type": "text/plain; charset=utf-8"}, "okay")
     return
@@ -283,6 +309,11 @@ signalingWss.on("connection", (conn, req) => {
 })
 
 server.on("upgrade", (req, socket, head) => {
+  if (!isAuthorized(req)) {
+    socket.write("HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"openDAW\", charset=\"UTF-8\"\r\n\r\n")
+    socket.destroy()
+    return
+  }
   const url = new URL(req.url ?? "/", "https://localhost")
   if (url.pathname === "/live/signaling") {
     signalingWss.handleUpgrade(req, socket, head, ws => {
