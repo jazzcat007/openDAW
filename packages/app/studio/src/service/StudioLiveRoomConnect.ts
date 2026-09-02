@@ -9,6 +9,11 @@ import {newRoomSessionId, reportRoomResult, RoomResultStatus, startRoomDurationH
 import {ChatService} from "@/chat/ChatService"
 import {Events} from "@opendaw/lib-dom"
 
+const USE_LOCAL_SERVER = import.meta.env.VITE_VJS_USE_LOCAL_SERVER === "true"
+const LOCAL_SERVER_URL = import.meta.env.VITE_VJS_LOCAL_SERVER_URL || "wss://localhost:1234"
+const ONLINE_SERVER_URL = import.meta.env.VITE_VJS_ONLINE_SERVER_URL || "wss://live.opendaw.studio"
+const LIVE_SERVER_URL = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+
 const classifyConnectError = (error: unknown): RoomResultStatus => {
     if (Errors.isAbort(error)) {return "abort"}
     const message = error instanceof Error ? error.message : String(error)
@@ -67,7 +72,7 @@ export const connectRoom = async (service: StudioService, prefillRoomName?: Opti
                     .flatMap(profile => profile.coverId === UUID.toString(uuid) ? profile.cover : Option.None)
                     .unwrapOrElse(() => panic(`No cover for ${UUID.toString(uuid)}`))
             }
-        }, roomName, "wss://live.opendaw.studio")
+        }, roomName, LIVE_SERVER_URL)
         project.own(p2pSession)
         const terminator = new Terminator()
         project.own(terminator)

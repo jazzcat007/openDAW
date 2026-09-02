@@ -19,7 +19,11 @@ export namespace VUMeter {
     type Construct = { design: Design, model: ObservableValue<unitValue> }
 
     const getGoogleFontUrl = (fontFamily: string, fontWeight: number) =>
-        `url("https://fonts.googleapis.com/css?family=${fontFamily.replace(" ", "+")}:${fontWeight}")`
+        {
+            void fontFamily
+            void fontWeight
+            return ""
+        }
 
     export const Element = ({
                                 design:

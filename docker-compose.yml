@@ -1,0 +1,17 @@
+services:
+  opendaw:
+    build:
+      context: .
+    container_name: opendaw
+    restart: unless-stopped
+    ports:
+      - "8789:8080"
+    environment:
+      FACTORY_ASSET_ROOT: /data/factory
+      OPENDAW_FACTORY_OFFLINE_ONLY: "true"
+      OPENDAW_PROJECT_ROOT: /data/projects
+      OPENDAW_ROOM_ROOT: /data/rooms
+    volumes:
+      - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/factory:/data/factory
+      - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/projects:/data/projects
+      - /srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/rooms:/data/rooms

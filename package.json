@@ -11,6 +11,7 @@
     "clean": "bash ./scripts/clean.sh",
     "build": "turbo build --output-logs=full",
     "build-wasm": "npm run build:wasm -w @opendaw/studio-core-wasm",
+    "import-soundfonts": "node scripts/import-soundfonts.mjs",
     "dev:studio": "turbo run dev --filter=@opendaw/app-studio",
     "dev:lab": "turbo run dev --filter=@opendaw/lab",
     "dev:yjs-server": "turbo run dev --filter=yjs-server",

@@ -1,7 +1,6 @@
 import {isDefined} from "@opendaw/lib-std"
 
 const STORAGE_KEY = "reported-latencies"
-const API_URL = "https://api.opendaw.studio/latency/report.php"
 const MAX_MS = 500
 
 const bucketMs = (context: AudioContext): number => {
@@ -14,9 +13,6 @@ const report = (ms: number): void => {
     const reported: ReadonlyArray<number> = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]")
     if (reported.includes(ms)) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...reported, ms]))
-    if (isDefined(navigator.sendBeacon)) {
-        navigator.sendBeacon(API_URL, JSON.stringify({latency: ms}))
-    }
 }
 
 export const installLatencyReporter = (context: AudioContext): void => {

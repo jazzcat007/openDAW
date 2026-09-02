@@ -5,8 +5,7 @@ import {SoundfontIndex} from "./SoundfontIndex"
 import {IntervalRetryOption, network, Promises} from "@opendaw/lib-runtime"
 
 export class OpenSoundfontAPI {
-    static readonly ApiRoot = "https://api.opendaw.studio/soundfonts"
-    static readonly FileRoot = "https://assets.opendaw.studio/soundfonts"
+    static readonly FileRoot = "/factory/soundfonts"
     static readonly IndexFile = `${OpenSoundfontAPI.FileRoot}/index.json`
 
     @Lazy

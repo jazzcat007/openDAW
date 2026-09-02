@@ -8,7 +8,6 @@ import {Runtime} from "@opendaw/lib-runtime"
 import {FooterLabel} from "@/service/FooterLabel"
 import {ProjectMeta, StudioPreferences} from "@opendaw/studio-core"
 import {Colors} from "@opendaw/studio-enums"
-import {UserCounter} from "@/UserCounter"
 import {AudioData} from "@opendaw/lib-dsp"
 import {FooterItem} from "@/ui/FooterItem"
 import {EngineAddresses} from "@opendaw/studio-adapters"
@@ -180,8 +179,7 @@ export const Footer = ({lifecycle, service}: Construct) => {
                  }}/>
             <FooterItem title="Users"
                         onInit={({value}) => {
-                            const counter = new UserCounter("https://api.opendaw.studio/users/user-counter.php")
-                            counter.subscribe(count => value.textContent = String(count))
+                            value.textContent = "local"
                         }}>#</FooterItem>
             <div style={{display: "contents"}}
                  onInit={element => service.registerFooter((): FooterLabel => {

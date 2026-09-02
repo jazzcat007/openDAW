@@ -1,7 +1,5 @@
 import {EmptyExec, Errors, isDefined, Option, Provider, Terminable, Terminator} from "@opendaw/lib-std"
-import {AnimationFrame, Browser, Events} from "@opendaw/lib-dom"
-import {LogBuffer} from "@/errors/LogBuffer.ts"
-import {ErrorLog} from "@/errors/ErrorLog.ts"
+import {AnimationFrame, Events} from "@opendaw/lib-dom"
 import {ErrorInfo} from "@/errors/ErrorInfo.ts"
 import {Surface} from "@/ui/surface/Surface.tsx"
 import {Dialogs} from "@/ui/components/dialogs.tsx"
@@ -37,7 +35,6 @@ const ModuleUrlPattern = /\.(?:m?jsx?|tsx?)(?:[?:#]|$)/
 
 export class ErrorHandler {
     readonly #terminator = new Terminator()
-    readonly #buildInfo: BuildInfo
     readonly #recover: Provider<Option<Provider<Promise<void>>>>
 
     #errorThrown: boolean = false
@@ -46,7 +43,7 @@ export class ErrorHandler {
     #browserInternalNotified: boolean = false
 
     constructor(buildInfo: BuildInfo, recover: Provider<Option<Provider<Promise<void>>>>) {
-        this.#buildInfo = buildInfo
+        void buildInfo
         this.#recover = recover
     }
 
@@ -293,21 +290,6 @@ export class ErrorHandler {
 
     #report(scope: string, error: ErrorInfo): void {
         console.error(scope, error.name, error.message, error.stack)
-        if (!import.meta.env.PROD) {return}
-        const maxStackSize = 2000
-        const body = JSON.stringify({
-            date: new Date().toISOString(),
-            agent: Browser.userAgent,
-            build: this.#buildInfo,
-            scripts: document.scripts.length,
-            error: {...error, stack: error.stack?.slice(0, maxStackSize)},
-            logs: LogBuffer.get()
-        } satisfies ErrorLog)
-        fetch("https://logs.opendaw.studio/log.php", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body
-        }).then(console.info, console.warn)
     }
 
     #showDialog(scope: string, error: ErrorInfo, probablyHasExtension: boolean, foreignOrigin: string | null): void {

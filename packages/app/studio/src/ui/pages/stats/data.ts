@@ -1,4 +1,4 @@
-import {isAbsent, Nullable, Option} from "@opendaw/lib-std"
+import {Nullable} from "@opendaw/lib-std"
 
 export type DailySeries = ReadonlyArray<readonly [date: string, value: number]>
 
@@ -55,133 +55,32 @@ export type SponsorStats = {
     sponsors: ReadonlyArray<Sponsor>
 }
 
-const sortByDate = (record: Record<string, number>): DailySeries =>
-    Object.entries(record).sort(([a], [b]) => a.localeCompare(b))
-
-const cacheGet = <T>(key: string, ttlMs: number): Option<T> => {
-    const raw = sessionStorage.getItem(key)
-    if (isAbsent(raw)) return Option.None
-    const parsed = JSON.parse(raw) as { at: number, value: T }
-    if (Date.now() - parsed.at > ttlMs) return Option.None
-    return Option.wrap(parsed.value)
-}
-
-const cacheSet = <T>(key: string, value: T): void => sessionStorage.setItem(key, JSON.stringify({
-    at: Date.now(),
-    value
-}))
-
 const fetchJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
     const response = await fetch(url, init)
     if (!response.ok) {throw new Error(`${response.status} ${response.statusText}`)}
     return await response.json() as T
 }
 
-type RoomResultBreakdown = {
-    success?: number
-    sync_timeout?: number
-    socket_error?: number
-    abort?: number
-    unknown?: number
-}
+const emptyDailySeries = (): DailySeries => []
 
 export const fetchRoomStats = async (): Promise<RoomStats> => {
-    const [results, duration] = await Promise.all([
-        fetchJson<Record<string, RoomResultBreakdown>>(
-            "https://api.opendaw.studio/rooms/rooms-result.json", {mode: "cors", cache: "no-store"}).catch(() => ({})),
-        fetchJson<Record<string, number>>(
-            "https://api.opendaw.studio/rooms/rooms-duration.json", {mode: "cors", cache: "no-store"}).catch(() => ({}))
-    ])
-    const counts: Record<string, number> = {}
-    for (const [date, breakdown] of Object.entries(results)) {
-        counts[date] = breakdown.success ?? 0
-    }
-    return {count: sortByDate(counts), duration: sortByDate(duration)}
+    return {count: emptyDailySeries(), duration: emptyDailySeries()}
 }
 
 export const fetchUserStats = async (): Promise<DailySeries> => {
-    const data = await fetchJson<Record<string, number>>("https://api.opendaw.studio/users/graph.json", {
-        mode: "cors",
-        credentials: "include"
-    })
-    return sortByDate(data)
+    return emptyDailySeries()
 }
-
-const GITHUB_OWNER = "andremichelle"
-const GITHUB_REPO = `${GITHUB_OWNER}/openDAW`
-const GITHUB_CACHE_KEY = "stats:github:v2"
-const GITHUB_TTL = 10 * 60 * 1000
 
 export const fetchGitHubStats = async (): Promise<GitHubStats> => {
-    const cached = cacheGet<GitHubStats>(GITHUB_CACHE_KEY, GITHUB_TTL)
-    if (cached.nonEmpty()) return cached.unwrap()
-    type RepoResponse = {
-        stargazers_count: number
-        forks_count: number
-        subscribers_count: number
-        open_issues_count: number
-        pushed_at: string
-    }
-    const repo = await fetchJson<RepoResponse>(`https://api.github.com/repos/${GITHUB_REPO}`)
-    const stats: GitHubStats = {
-        stars: repo.stargazers_count,
-        forks: repo.forks_count,
-        watchers: repo.subscribers_count,
-        openIssues: repo.open_issues_count,
-        lastCommit: new Date(repo.pushed_at).getTime()
-    }
-    cacheSet(GITHUB_CACHE_KEY, stats)
-    return stats
+    return {stars: 0, forks: 0, watchers: 0, openIssues: 0, lastCommit: 0}
 }
-
-const CONTRIBUTORS_CACHE_KEY = "stats:contributors"
-const CONTRIBUTORS_TTL = 60 * 60 * 1000
 
 export const fetchContributors = async (): Promise<ReadonlyArray<Contributor>> => {
-    const cached = cacheGet<ReadonlyArray<Contributor>>(CONTRIBUTORS_CACHE_KEY, CONTRIBUTORS_TTL)
-    if (cached.nonEmpty()) return cached.unwrap()
-    type ContributorResponse = {
-        login: string
-        type: "User" | "Bot"
-        avatar_url: string
-        html_url: string
-        contributions: number
-    }
-    const data = await fetchJson<ReadonlyArray<ContributorResponse>>(
-        `https://api.github.com/repos/${GITHUB_REPO}/contributors?per_page=100`)
-    const contributors: ReadonlyArray<Contributor> = data
-        .filter(entry => entry.type === "User" && entry.login !== GITHUB_OWNER)
-        .map(entry => ({
-            login: entry.login,
-            avatarUrl: entry.avatar_url,
-            url: entry.html_url,
-            contributions: entry.contributions
-        }))
-    cacheSet(CONTRIBUTORS_CACHE_KEY, contributors)
-    return contributors
+    return []
 }
 
-const DISCORD_INVITE = "ZRm8du7vn4"
-const DISCORD_CACHE_KEY = "stats:discord"
-const DISCORD_TTL = 5 * 60 * 1000
-
 export const fetchDiscordStats = async (): Promise<DiscordStats> => {
-    const cached = cacheGet<DiscordStats>(DISCORD_CACHE_KEY, DISCORD_TTL)
-    if (cached.nonEmpty()) return cached.unwrap()
-    type InviteResponse = {
-        approximate_member_count: number
-        approximate_presence_count: number
-        guild: { name: string }
-    }
-    const data = await fetchJson<InviteResponse>(
-        `https://discord.com/api/v10/invites/${DISCORD_INVITE}?with_counts=true`)
-    const stats: DiscordStats = {
-        name: data.guild.name,
-        total: data.approximate_member_count,
-        online: data.approximate_presence_count
-    }
-    cacheSet(DISCORD_CACHE_KEY, stats)
-    return stats
+    return {name: "local", total: 0, online: 0}
 }
 
 export const fetchSponsorStats = async (): Promise<SponsorStats> =>
@@ -201,18 +100,9 @@ export const formatRelativeDate = (timestamp: number): string => {
     return `${months} months ago`
 }
 
-const NPM_CACHE_KEY = "stats:npm"
-const NPM_TTL = 60 * 60 * 1000
-
 export const fetchNpmWeeklyDownloads = async (packageName: string): Promise<number> => {
-    const key = `${NPM_CACHE_KEY}:${packageName}`
-    const cached = cacheGet<number>(key, NPM_TTL)
-    if (cached.nonEmpty()) return cached.unwrap()
-    type NpmResponse = { downloads: number }
-    const data = await fetchJson<NpmResponse>(
-        `https://api.npmjs.org/downloads/point/last-week/${packageName}`)
-    cacheSet(key, data.downloads)
-    return data.downloads
+    void packageName
+    return 0
 }
 
 export const bestColumnCount = (totalCells: number): number => {
@@ -224,65 +114,22 @@ export const bestColumnCount = (totalCells: number): number => {
     return bestCols
 }
 
-const ERROR_CACHE_KEY = "stats:errors"
-const ERROR_TTL = 5 * 60 * 1000
-
 export const fetchErrorStats = async (): Promise<ErrorStats> => {
-    const cached = cacheGet<ErrorStats>(ERROR_CACHE_KEY, ERROR_TTL)
-    if (cached.nonEmpty()) return cached.unwrap()
-    type StatusResponse = { Total: number, Fixed: number, Unfixed: number, Ratio: string }
-    const data = await fetchJson<StatusResponse>("https://logs.opendaw.studio/status.php")
-    const stats: ErrorStats = {
-        total: data.Total,
-        fixed: data.Fixed,
-        unfixed: data.Unfixed,
-        ratio: data.Ratio
-    }
-    cacheSet(ERROR_CACHE_KEY, stats)
-    return stats
+    return {total: 0, fixed: 0, unfixed: 0, ratio: "0%"}
 }
 
 export type LatencyStats = { distribution: DailySeries, unsupported: number, total: number }
 
-const LATENCY_OVERFLOW_MS = 50
-
 export const fetchLatencyStats = async (): Promise<LatencyStats> => {
-    const data = await fetchJson<Record<string, number>>(
-        "https://api.opendaw.studio/latency/latency.json", {mode: "cors"})
-    const unsupported = data["-1"] ?? 0
-    const buckets = new Map<number, number>()
-    let overflow = 0
-    for (const [key, count] of Object.entries(data)) {
-        const ms = parseInt(key, 10)
-        if (!(ms > 0)) continue
-        if (ms >= LATENCY_OVERFLOW_MS) {overflow += count} else {buckets.set(ms, count)}
-    }
-    const total = overflow + [...buckets.values()].reduce((sum, count) => sum + count, 0)
-    if (total === 0) return {distribution: [], unsupported, total: 0}
-    const minMs = buckets.size === 0 ? 1 : Math.min(...buckets.keys())
-    const counts: Array<readonly [string, number]> = []
-    for (let ms = minMs; ms < LATENCY_OVERFLOW_MS; ms++) {
-        counts.push([`${ms}`, buckets.get(ms) ?? 0] as const)
-    }
-    counts.push([`${LATENCY_OVERFLOW_MS}+`, overflow] as const)
-    const distribution = counts.map(([label, count]) => [label, (count / total) * 100] as const)
-    return {distribution, unsupported, total}
+    return {distribution: [], unsupported: 0, total: 0}
 }
 
 export const fetchVisitorStats = async (): Promise<DailySeries> => {
-    const data = await fetchJson<Record<string, ReadonlyArray<string>>>(
-        "https://api.opendaw.studio/users/visitors.json", {mode: "cors"})
-    const counts: Record<string, number> = {}
-    for (const [date, ids] of Object.entries(data)) {
-        counts[date] = ids.length
-    }
-    return sortByDate(counts)
+    return emptyDailySeries()
 }
 
 export const fetchVisitStats = async (): Promise<DailySeries> => {
-    const data = await fetchJson<Record<string, number>>(
-        "https://api.opendaw.studio/users/visits.json", {mode: "cors"})
-    return sortByDate(data)
+    return emptyDailySeries()
 }
 
 export const sumValues = (series: DailySeries): number =>

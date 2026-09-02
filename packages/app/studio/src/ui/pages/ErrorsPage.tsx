@@ -11,12 +11,10 @@ const loadLimit = 100
 
 export const ErrorsPage: PageFactory<StudioService> = ({lifecycle}: PageContext<StudioService>) => {
     let offset = 0
-    const loadMore = () => fetch(`https://logs.opendaw.studio/list.php?offset=${offset}&limit=${loadLimit}`)
-        .then(response => {
-            offset += loadLimit
-            return response.json()
-        })
-        .then(entries => entries as ReadonlyArray<Entry>, () => [])
+    const loadMore = () => {
+        offset += loadLimit
+        return Promise.resolve([] as ReadonlyArray<Entry>)
+    }
     return (
         <div className={className}>
             <h1>Errors</h1>
@@ -27,9 +25,7 @@ export const ErrorsPage: PageFactory<StudioService> = ({lifecycle}: PageContext<
                                      style={{color: Colors.blue}}
             >here</a>.</h5>
             <code onInit={async element => {
-                element.textContent = "loading status..."
-                element.textContent = await fetch("https://logs.opendaw.studio/status.php").then(x => x.json())
-                    .then(x => Object.entries(x).map(([key, value]) => `${key}: ${value}`).join(", "))
+                element.textContent = "local self-contained build: remote error logs disabled"
             }} style={{fontSize: "10px", marginBottom: "1em", color: Colors.blue.toString()}}/>
             <Await
                 factory={() => loadMore()}

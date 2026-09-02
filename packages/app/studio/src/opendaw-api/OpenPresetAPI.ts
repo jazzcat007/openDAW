@@ -1,14 +1,12 @@
 import {
-    asDefined, DefaultObservableValue, isDefined, Lazy, panic, Procedure, RuntimeNotifier, tryCatch, unitValue, UUID
+    asDefined, isDefined, Lazy, panic, Procedure, unitValue, UUID
 } from "@opendaw/lib-std"
 import {network, Promises} from "@opendaw/lib-runtime"
-import {AccessKey} from "./AccessKey"
-import {base64Credentials, OpenDAWHeaders} from "./OpenDAWHeaders"
+import {OpenDAWHeaders} from "./OpenDAWHeaders"
 import {PresetMeta} from "@opendaw/studio-core"
 
 export class OpenPresetAPI {
-    static readonly ApiRoot = "https://api.opendaw.studio/presets"
-    static readonly FileRoot = "https://assets.opendaw.studio/presets"
+    static readonly FileRoot = "/factory/presets"
 
     @Lazy
     static get(): OpenPresetAPI {return new OpenPresetAPI()}
@@ -71,34 +69,8 @@ export class OpenPresetAPI {
     }
 
     async upload(arrayBuffer: ArrayBuffer, meta: PresetMeta): Promise<void> {
-        const progress = new DefaultObservableValue(0.0)
-        const dialog = RuntimeNotifier.progress({headline: "Uploading", progress})
-        const formData = new FormData()
-        Object.entries(meta).forEach(([key, value]) => formData.set(key, String(value)))
-        const accessKey = AccessKey.get().unwrap("Cannot upload without access-key.")
-        formData.set("key", accessKey)
-        formData.append("file", new Blob([arrayBuffer]))
-        const xhr = new XMLHttpRequest()
-        xhr.upload.addEventListener("progress", (event: ProgressEvent) => {
-            if (event.lengthComputable) {
-                progress.setValue(event.loaded / event.total)
-            }
-        })
-        xhr.onreadystatechange = () => {
-            if (xhr.readyState === 4) {
-                dialog.terminate()
-                if (xhr.status === 200) {
-                    RuntimeNotifier.notify({message: "Upload complete.", icon: "Checkbox"})
-                } else {
-                    const {status, value} =
-                        tryCatch(() => JSON.parse(xhr.responseText).message ?? "Unknown error message")
-                    console.warn(status === "success" ? value : xhr.responseText)
-                    RuntimeNotifier.notify({message: "Upload failed.", icon: "Warning"})
-                }
-            }
-        }
-        xhr.open("POST", `${OpenPresetAPI.ApiRoot}/upload.php`, true)
-        xhr.setRequestHeader("Authorization", `Basic ${base64Credentials}`)
-        xhr.send(formData)
+        void arrayBuffer
+        void meta
+        return panic("Preset uploads to opendaw.studio are disabled in this self-contained build.")
     }
 }

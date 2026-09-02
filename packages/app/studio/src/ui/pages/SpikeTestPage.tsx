@@ -21,8 +21,8 @@ interface ModelCandidate {
 const MODEL_CANDIDATES: ReadonlyArray<ModelCandidate> = [
     {
         key: "opendaw",
-        label: "assets.opendaw.studio htdemucs v4 (304 MB, MIT) — DEFAULT",
-        url: "https://assets.opendaw.studio/models/htdemucs/v4/model.onnx",
+        label: "local factory htdemucs v4 (304 MB, MIT) — DEFAULT",
+        url: "/factory/models/htdemucs/v4/model.onnx",
         bytes: 304_321_552,
         sha256: "d2b401f322558cd57d67a752ed7be3fa55178a0626011eda8ac7bb74e17280c0",
         license: "MIT"

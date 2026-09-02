@@ -65,7 +65,7 @@ class Loader {
         ffmpeg.on("progress", event => {
             this.#progressNotifier.notify(event.progress)
         })
-        const baseURL = "https://package.opendaw.studio" // mirror of https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm
+        const baseURL = "/factory/ffmpeg-core/0.12.6"
         console.debug("[FFmpeg] Downloading core files...")
         const downloadWithProgress = async (url: string): Promise<ArrayBuffer> => {
             const response = await fetch(url)

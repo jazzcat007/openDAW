@@ -1,0 +1,10 @@
+.git
+node_modules
+**/node_modules
+**/dist
+crates/target
+certs
+.turbo
+npm-debug.log*
+Dockerfile
+docker-compose.yml

@@ -2,10 +2,7 @@ import {Nullable, Terminable} from "@opendaw/lib-std"
 import {AssetSignaling} from "./AssetSignaling"
 
 const RTC_CONFIG: RTCConfiguration = {
-    iceServers: [
-        {urls: "stun:stun.l.google.com:19302"},
-        {urls: "turn:live.opendaw.studio:3478", username: "opendaw", credential: "opendaw"}
-    ]
+    iceServers: []
 }
 
 const BUFFERED_AMOUNT_HIGH = 1_048_576
