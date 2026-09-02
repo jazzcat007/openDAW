@@ -17,7 +17,8 @@ const upstreamPassword = process.env.OPENDAW_UPSTREAM_ASSET_PASSWORD ?? "prototy
 const upstreamAuth = Buffer.from(`${upstreamUsername}:${upstreamPassword}`).toString("base64")
 const siteUsername = process.env.OPENDAW_AUTH_USERNAME
 const sitePassword = process.env.OPENDAW_AUTH_PASSWORD
-const authEnabled = siteUsername !== undefined && sitePassword !== undefined
+const authEnabled = siteUsername !== undefined && siteUsername.length > 0 &&
+  sitePassword !== undefined && sitePassword.length > 0
 const rooms = new Map()
 const roomCleanupTimers = new Map()
 
