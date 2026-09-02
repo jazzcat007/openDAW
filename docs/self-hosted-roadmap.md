@@ -121,10 +121,17 @@ Implementation phases:
    - Store the project file, metadata, cover image, and revision snapshots under `/data/projects`.
    - Change the client Project browser and save flow so server storage is the default and OPFS becomes cache/recovery only.
 
-3. Connect Live Rooms to Projects.
-   - Create Live Rooms from a Project, not as anonymous-only documents.
-   - Store room metadata including project id, owner, members, created time, last activity, and current snapshot revision.
-   - Add autosnapshot from Live Room Yjs state back to the linked Project.
+3. Connect Live Rooms to Projects. **(done, partial)**
+   - Create Live Rooms from a Project: when a room is started from a saved server-backed project, the client
+     links it via `POST /api/rooms` (`/data/server/room-links.json`: roomName, projectUuid, ownerUserId,
+     createdAt, lastActivityAt).
+   - Add autosnapshot from Live Room Yjs state back to the linked Project: the room creator's client
+     periodically (every 2 minutes) and on leaving the room writes `project.toArrayBuffer()` back via the
+     existing `PUT /api/projects/:uuid/file` + `.../meta`, which already creates a revision snapshot.
+   - Joiners (anyone who didn't create the link) don't autosnapshot, to avoid redundant concurrent writes.
+   - Still open: no membership list beyond the single owner, no Admin "Live Rooms" view of active/linked
+     rooms yet (see phase 5), and starting a room from an *unsaved* project still behaves as a pure anonymous
+     room (no link, no snapshot) — unchanged from before.
 
 4. Add app-level authentication. **(done)**
    - Replace shared Basic Auth with individual users (scrypt password hashing, real `users.json`).
@@ -136,7 +143,8 @@ Implementation phases:
    - Users: create users, reset passwords, disable users, assign roles. **(done: `/admin` page + `/api/admin/users`)**
    - Invites: one-time invite links for friends. **(done: `/admin` Invites tab + `/api/admin/invites` + `/api/auth/{invite,register}`)**
    - Projects: ownership, membership, archive/trash, storage usage, export/backup.
-   - Live Rooms: active rooms, participants, stale-room cleanup, force snapshot, close room.
+   - Live Rooms: active rooms, participants, stale-room cleanup, force snapshot, close room. **(data exists via
+     `GET /api/rooms`, no Admin UI panel yet)**
    - Assets: import queue, sample/soundfont/preset catalogs, license/source metadata.
    - Settings: site name, registration policy, default project visibility, storage quotas, factory offline mode, backup target, retention policy. **(partial: site name editable on `/admin`, rest read-only/TODO)**
    - Audit: login events, admin changes, destructive project actions, import jobs.
@@ -146,6 +154,48 @@ Implementation phases:
    - Scheduled backups of `/data/server`, `/data/projects`, `/data/rooms`, and `/data/factory`.
    - Per-project export bundles so no work is locked into the server.
    - Recovery path for browser OPFS drafts that have not synced yet.
+
+## Live Collaboration Features
+
+Goal: give collaborators the signals they'd expect from any shared document — who's touching what, a place to leave notes, and a way to compare alternatives — on top of the existing Live Room / Yjs sync layer.
+
+Current building blocks already shipped (this is more complete than it looks from the roadmap alone):
+
+- **Presence/awareness** (`RoomAwareness.ts`, `RoomStatus.tsx`): each connected user broadcasts name, color, and panel location over the Yjs awareness protocol; shown as a status bar and per-panel dots.
+- **Remote selection highlighting** (`RemoteSelections.ts` + `FilteredRemoteSelection`): every other user's selection is watched so overlays can show what regions/devices *they* have selected, scoped by type (region vs device vs note).
+- Each `UserInterfaceBox` (one per connected user, replicated through the normal box graph) already carries `editing-device-chain`, `editing-timeline-region`, and `editing-modular-system` pointers — "what this user is currently focused on" already exists as synced state, it's just not surfaced in the UI beyond selection outlines.
+- **Live Room chat** (`ChatService.ts`, an ephemeral `Y.Array` on the room doc) and **P2P sample/soundfont exchange** between peers are both shipped.
+- Server-side **project revision snapshots** already exist (`/api/projects` snapshots under Server-First Collaboration Model phase 2).
+- Nothing exists yet for locking, persistent comments, or variant/version compare — no `locked` field on any track/device box, no comment box type, no compare UI.
+
+### 1. Track locking
+
+Two different features hide under "locking" — worth keeping separate rather than building one thing that tries to do both:
+
+- **Soft lock (presence-derived, no schema change).** Surface the already-synced `editing-timeline-region` / `editing-device-chain` pointers as a visual indicator on track headers — "Alice is editing this" — the same way `RemoteSelections` already drives selection overlays. Close to free: the data is already replicating, this just needs a track-header consumer. Advisory only, never blocks anyone.
+- **Hard lock (new persisted state, needs enforcement).** A `locked` boolean on `AudioUnitBox`/track, same shape as the existing `mute`/`solo` fields, replicated like any other box field. Once set, everyone (including the person who set it, until they unlock it) is blocked from mutating that track's regions/devices/parameters. Needs a schema field, edit-path guards at every track-mutation entry point (region move/resize/delete, device add/remove, parameter change — needs an audit, likely centralized behind one guard rather than scattered checks), a lock icon/toggle in the track header, and a decision on who's allowed to unlock a track someone else locked (anyone? only the locker? project owner override?) — a product call, not just an engineering one.
+
+Ship soft lock first — it reuses infrastructure that already exists. Treat hard lock as a larger follow-up once the edit-path audit is done.
+
+### 2. Comments
+
+Model on the existing `MarkerBox` pattern (`packages/studio/forge-boxes/src/schema/std/timeline/MarkerBox.ts`) rather than chat: a `CommentBox` (position, optional track/device anchor, author name/color/user id, text, timestamp, resolved flag) referenced from `TimelineBox` the way markers are, so it replicates through the normal box graph and **persists with the project** — unlike chat, which is a session-only `Y.Array` that disappears when the room closes. That distinction is the point: comments are the async/Projects-mode complement to chat, so a note left on a track is still there when a collaborator opens the Project later, live room or not.
+
+- Threading: flat comments, or a `CommentBox` + `CommentReplyBox` pair. Either way, capture author name/color as an immutable snapshot at write time — same choice chat already made — so a later identity change doesn't rewrite history.
+- Anchoring: timeline position (like markers) plus an optional track/device reference, so a comment can sit "at bar 32" or "on the reverb on the vocal bus."
+- UI: comment pins on the timeline ruler/track header (visually distinct from marker pins), a thread panel, resolved/unresolved filter.
+- Reuse the presence color/name convention from `RoomAwareness` so a comment's author dot matches their live-room color.
+
+### 3. A/B project variants
+
+Scoped to project-level compare, not per-device bypass toggling (that's a local, single-user, non-collaborative UI feature — worth a future roadmap line of its own, but it doesn't belong in this batch).
+
+- Build directly on the revision snapshot mechanism already listed under Server-First Collaboration Model rather than inventing new storage.
+- Needs: a way to tag/name a snapshot as a labeled variant (not just an autosave point), a compare UI to switch the working state between two named variants without losing either, and playback that can instant-switch (crossfade later) between them for A/B listening.
+- Collaboration angle: variants should be visible to everyone with access to the Project, not local `Save As` copies — "your mix" vs "my mix" as two variants of one Project, not two separate Projects, so history doesn't fragment.
+- Open question: does switching variants swap the whole box graph (heavy, but simple — reuses existing snapshot restore) or diff just the mixer/device state (lighter switching, much more invasive to build)? Recommend starting with whole-graph swap since the snapshot/restore plumbing is closest to already existing.
+
+Proposed order: soft lock indicator → comments → hard lock enforcement → A/B variants (the variant-naming/compare UI is the least-built-out piece, and benefits from the snapshot system maturing first).
 
 ## DAW Import/Export
 
@@ -192,7 +242,7 @@ Proposed phases:
 2. ~~Add individual user/session auth (server-side foundation + login/setup gate).~~ **(done)**
 3. ~~Add the Admin shell UI (Users, Invites, Settings) on `/admin`.~~ **(done; Audit tab still open)**
 4. ~~Add invite links so friends can self-register instead of an admin calling `/api/admin/users` directly.~~ **(done)**
-5. Link Live Rooms to server Projects and autosnapshot them.
+5. ~~Link Live Rooms to server Projects and autosnapshot them.~~ **(done, partial — see phase 3 above)**
 6. Build an asset intake folder structure on the media volume.
 7. Import the first large sample and SF2 batches.
 8. Create ten starter presets/racks.

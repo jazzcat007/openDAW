@@ -1,10 +1,11 @@
 import {Errors, Option, Optional, panic, Progress, RuntimeNotifier, Terminator, TimeSpan, UUID} from "@opendaw/lib-std"
 import {Promises, Wait} from "@opendaw/lib-runtime"
-import {SampleStorage, SoundfontStorage, Workers, YService} from "@opendaw/studio-core"
+import {ProjectMeta, SampleStorage, ServerProjects, SoundfontStorage, Workers, YService} from "@opendaw/studio-core"
 import {P2PSession, type SignalingSocket} from "@opendaw/studio-p2p"
 import {StudioService} from "@/service/StudioService"
 import {showConnectRoomDialog} from "@/service/StudioLiveRoomDialog.tsx"
 import {RoomAwareness, writeIdentity} from "@/service/RoomAwareness"
+import {RoomsApi} from "@/service/RoomsApi"
 import {newRoomSessionId, reportRoomResult, RoomResultStatus, startRoomDurationHeartbeat} from "@/service/RoomStatsReporter"
 import {ChatService} from "@/chat/ChatService"
 import {Events} from "@opendaw/lib-dom"
@@ -13,6 +14,7 @@ const USE_LOCAL_SERVER = import.meta.env.VITE_VJS_USE_LOCAL_SERVER === "true"
 const LOCAL_SERVER_URL = import.meta.env.VITE_VJS_LOCAL_SERVER_URL || "wss://localhost:1234"
 const ONLINE_SERVER_URL = import.meta.env.VITE_VJS_ONLINE_SERVER_URL || "wss://live.opendaw.studio"
 const LIVE_SERVER_URL = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+const ROOM_SNAPSHOT_INTERVAL_MS = TimeSpan.minutes(2).millis()
 
 const classifyConnectError = (error: unknown): RoomResultStatus => {
     if (Errors.isAbort(error)) {return "abort"}
@@ -123,6 +125,22 @@ export const connectRoom = async (service: StudioService, prefillRoomName?: Opti
         terminator.own(chatService)
         service.chatService.wrap(chatService)
         terminator.own({terminate: () => service.chatService.clear()})
+        // Only the creator of a room-from-a-saved-project autosnapshots; joiners just collaborate.
+        // Avoids redundant concurrent writes from every participant onto the same project revision.
+        if (sourceProfile.nonEmpty() && sourceProfile.unwrap().saved() && await ServerProjects.isAvailable()) {
+            const linkedUuid = sourceProfile.unwrap().uuid
+            const linkedMeta = ProjectMeta.copy(sourceProfile.unwrap().meta)
+            void RoomsApi.registerRoom(roomName, UUID.toString(linkedUuid))
+            const snapshot = async () => {
+                const {status, error} = await Promises.tryCatch(ServerProjects.saveProject(
+                    linkedUuid, project.toArrayBuffer() as ArrayBuffer,
+                    {...linkedMeta, modified: new Date().toISOString()}, sourceCover))
+                if (status === "rejected") {console.warn("Room autosnapshot failed:", error)}
+            }
+            const snapshotInterval = setInterval(() => void snapshot(), ROOM_SNAPSHOT_INTERVAL_MS)
+            terminator.own({terminate: () => clearInterval(snapshotInterval)})
+            terminator.own({terminate: () => void snapshot()})
+        }
         await Wait.timeSpan(TimeSpan.seconds(1))
     } else {
         reportRoomResult(sessionId, classifyConnectError(error))

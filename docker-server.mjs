@@ -142,6 +142,15 @@ const findValidInvite = (token) => {
   return invite
 }
 
+const roomLinksFile = join(serverRoot, "room-links.json")
+const ROOM_NAME_PATTERN = /^[a-z0-9.\-_]{1,16}$/
+const loadRoomLinks = () => {
+  const raw = readJson(roomLinksFile, {rooms: []})
+  return Array.isArray(raw.rooms) ? raw.rooms : []
+}
+let roomLinks = loadRoomLinks()
+const persistRoomLinks = () => writeFileSync(roomLinksFile, `${JSON.stringify({rooms: roomLinks}, null, 2)}\n`)
+
 const sessionsFile = join(serverRoot, "sessions.json")
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000
 const SESSION_COOKIE = "opendaw_session"
@@ -970,6 +979,64 @@ const serveAdminApi = async (req, res) => {
   sendJson(res, 404, {error: "Not found"})
 }
 
+// Links a Live Room (Yjs doc name) to a server Project so the client can autosnapshot into it.
+// Content lives entirely in the Yjs doc; this is metadata only, not the room's data.
+const serveRoomsApi = async (req, res) => {
+  const currentUser = getCurrentUser(req)
+  if (currentUser === null) {
+    sendJson(res, 401, {error: "Authentication required"})
+    return
+  }
+  const url = new URL(req.url, "https://localhost")
+  const segments = url.pathname.replace(/^\/api\/rooms\/?/, "").split("/").filter(Boolean)
+  if (segments.length === 0) {
+    if (req.method === "GET") {
+      sendJson(res, 200, {rooms: roomLinks})
+      return
+    }
+    if (req.method === "POST") {
+      const parsed = tryParseJson(await readBody(req, 4096))
+      const roomName = typeof parsed?.roomName === "string" ? parsed.roomName : ""
+      const projectUuid = typeof parsed?.projectUuid === "string" ? parsed.projectUuid : ""
+      if (!ROOM_NAME_PATTERN.test(roomName) || !PROJECT_UUID_PATTERN.test(projectUuid)) {
+        sendJson(res, 400, {error: "Invalid room name or project id"})
+        return
+      }
+      const existing = roomLinks.find(candidate => candidate.roomName === roomName)
+      if (existing !== undefined && existing.ownerUserId !== currentUser.id) {
+        sendJson(res, 403, {error: "Room is linked by another user"})
+        return
+      }
+      const now = new Date().toISOString()
+      if (existing !== undefined) {
+        existing.projectUuid = projectUuid
+        existing.lastActivityAt = now
+      } else {
+        roomLinks.push({roomName, projectUuid, ownerUserId: currentUser.id, createdAt: now, lastActivityAt: now})
+      }
+      persistRoomLinks()
+      sendJson(res, 200, {ok: true})
+      return
+    }
+    methodNotAllowed(res, ["GET", "POST"])
+    return
+  }
+  if (segments.length === 1) {
+    if (req.method !== "GET") {
+      methodNotAllowed(res, ["GET"])
+      return
+    }
+    const room = roomLinks.find(candidate => candidate.roomName === segments[0])
+    if (room === undefined) {
+      sendJson(res, 404, {error: "Not found"})
+      return
+    }
+    sendJson(res, 200, {room})
+    return
+  }
+  sendJson(res, 404, {error: "Not found"})
+}
+
 const serveLocalFactory = (req, res) => {
   const url = new URL(req.url, "https://localhost")
   const requestPath = decodeURIComponent(url.pathname.replace(/^\/factory\/?/, ""))
@@ -1069,6 +1136,13 @@ const server = createServer((req, res) => {
       return
     }
     serveProjectsApi(req, res).catch(error => {
+      console.error(error)
+      sendJson(res, 500, {error: "Internal server error"})
+    })
+    return
+  }
+  if (url.pathname.startsWith("/api/rooms")) {
+    serveRoomsApi(req, res).catch(error => {
       console.error(error)
       sendJson(res, 500, {error: "Internal server error"})
     })
