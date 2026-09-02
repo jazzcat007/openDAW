@@ -132,9 +132,9 @@ export const connectRoom = async (service: StudioService, prefillRoomName?: Opti
             const linkedMeta = ProjectMeta.copy(sourceProfile.unwrap().meta)
             void RoomsApi.registerRoom(roomName, UUID.toString(linkedUuid))
             const snapshot = async () => {
+                const meta = Object.assign(ProjectMeta.copy(linkedMeta), {modified: new Date().toISOString()})
                 const {status, error} = await Promises.tryCatch(ServerProjects.saveProject(
-                    linkedUuid, project.toArrayBuffer() as ArrayBuffer,
-                    {...linkedMeta, modified: new Date().toISOString()}, sourceCover))
+                    linkedUuid, project.toArrayBuffer() as ArrayBuffer, meta, sourceCover))
                 if (status === "rejected") {console.warn("Room autosnapshot failed:", error)}
             }
             const snapshotInterval = setInterval(() => void snapshot(), ROOM_SNAPSHOT_INTERVAL_MS)
