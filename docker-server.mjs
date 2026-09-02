@@ -797,6 +797,34 @@ const serveAuthApi = async (req, res) => {
     sendJson(res, 200, {ok: true, user: sanitizeUser(user)})
     return
   }
+  if (segment === "password") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    const currentUser = getCurrentUser(req)
+    if (currentUser === null) {
+      sendJson(res, 401, {error: "Authentication required"})
+      return
+    }
+    const parsed = tryParseJson(await readBody(req, 4096))
+    const currentPassword = typeof parsed?.currentPassword === "string" ? parsed.currentPassword : ""
+    const newPassword = typeof parsed?.newPassword === "string" ? parsed.newPassword : ""
+    if (!verifyPassword(currentPassword, currentUser.passwordHash)) {
+      sendJson(res, 401, {error: "Current password is incorrect"})
+      return
+    }
+    if (newPassword.length < 8) {
+      sendJson(res, 400, {error: "New password must be at least 8 characters"})
+      return
+    }
+    currentUser.passwordHash = hashPassword(newPassword)
+    persistUsers()
+    destroySessionsForUser(currentUser.id)
+    clearSessionCookie(res)
+    sendJson(res, 200, {ok: true})
+    return
+  }
   if (segment === "logout") {
     if (req.method !== "POST") {
       methodNotAllowed(res, ["POST"])

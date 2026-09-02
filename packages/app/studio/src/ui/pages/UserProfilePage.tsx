@@ -5,8 +5,6 @@ import {PageFactory, PageContext} from "@opendaw/lib-jsx"
 import {Html} from "@opendaw/lib-dom"
 import {AdminApi} from "@/admin/AdminApi"
 import {BackButton} from "@/ui/pages/BackButton"
-import {Button} from "@/ui/components/Button"
-import {Colors} from "@opendaw/studio-enums"
 
 const className = Html.adoptStyleSheet(css, "UserProfilePage")
 
@@ -39,7 +37,7 @@ export const UserProfilePage: PageFactory<StudioService> = async ({service}: Pag
 
         try {
             await AdminApi.changePassword(currentPasswordInput.value, newPasswordInput.value)
-            successLine.textContent = "Password changed successfully"
+            successLine.textContent = "Password changed. Sign in again to continue."
             currentPasswordInput.value = ""
             newPasswordInput.value = ""
             confirmPasswordInput.value = ""
@@ -68,7 +66,7 @@ export const UserProfilePage: PageFactory<StudioService> = async ({service}: Pag
             <label>Confirm new password</label>
             {confirmPasswordInput}
         </div>
-        <Button appearance={{color: Colors.green}}>Change Password</Button>
+        <button type="submit">CHANGE PASSWORD</button>
         {errorLine}
         {successLine}
     </form>

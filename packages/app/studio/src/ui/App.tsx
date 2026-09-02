@@ -27,6 +27,7 @@ import {PerformancePage} from "@/ui/pages/PerformancePage"
 import {SampleReadPage} from "@/ui/pages/SampleReadPage"
 import {SpikeTestPage} from "@/ui/pages/SpikeTestPage"
 import {AdminPage} from "@/ui/pages/AdminPage"
+import {UserProfilePage} from "@/ui/pages/UserProfilePage"
 
 export const App = (service: StudioService) => {
     const terminator = new Terminator()
@@ -65,6 +66,7 @@ export const App = (service: StudioService) => {
                     {path: "/graph", factory: GraphPage},
                     {path: "/stats", factory: DashboardPage},
                     {path: "/admin", factory: AdminPage},
+                    {path: "/profile", factory: UserProfilePage},
                     {
                         path: "/users", factory: (context) => {
                             history.replaceState(null, "", "/stats")

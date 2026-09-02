@@ -27,6 +27,15 @@ export namespace AdminApi {
         await fetch("/api/auth/logout", {method: "POST", headers: CsrfHeader})
     }
 
+    export const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
+        const response = await fetch("/api/auth/password", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", ...CsrfHeader},
+            body: JSON.stringify({currentPassword, newPassword})
+        })
+        if (!response.ok) {return panic(await parseError(response, `Failed to change password (${response.status})`))}
+    }
+
     export const fetchSettings = async (): Promise<{ settings: Settings, users: ReadonlyArray<User> }> => {
         const response = await fetch("/api/admin/settings")
         if (!response.ok) {return panic(await parseError(response, `Failed to load settings (${response.status})`))}
