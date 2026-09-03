@@ -11,6 +11,7 @@ type StoredDeck = { queue: number[], last: number | null }
 
 const signals: ReadonlyArray<Signal> = [
     {headline: "GEN X, NO X-FACTOR.", body: "You already survived mixtapes, bad rehearsal rooms, and dubious record-store advice. Drop a beat and trust your ears."},
+    {headline: "REMEMBER WHEN YOU WEREN'T A BITCH?", body: "They're still in there — probably under the inbox, the back stretches, and the mysteriously expensive car maintenance. Make something loud."},
     {headline: "DROP ONE GOOD THING.", body: "Eight bars counts. One filthy bassline counts. A snare that makes the dog leave the room definitely counts."},
     {headline: "THE BAND CAN'T REHEARSE THURSDAY.", body: "Dave has pickleball. Somebody has a parent-teacher conference. Pass the tape and make it anyway."},
     {headline: "SIDE A NEEDS YOUR STANK.", body: "Open the handoff, add one part, save it, and let the next duck take the wheel when they escape real life."},
