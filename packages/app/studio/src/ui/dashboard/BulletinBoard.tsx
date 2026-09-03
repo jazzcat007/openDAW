@@ -46,7 +46,7 @@ export const BulletinBoard = ({service}: Construct) => (
     <section className={className} aria-label="Community bulletin board">
         <header className="board-head">
             <div>
-                <div className="eyebrow"><span className="live-dot"/>openDAW BBS · node 01 · 38,400 baud</div>
+                <div className="eyebrow"><span className="live-dot"/>openDAW BBS · node 01 · 38,400 baud · 2600 dreams</div>
                 <h2>THE BULLETIN BOARD</h2>
                 <p>Dial in. Find a collaborator, a room to join, or one good reason to make some noise.</p>
             </div>
@@ -69,7 +69,7 @@ export const BulletinBoard = ({service}: Construct) => (
                 ))}
             </div>
             <aside className="board-side">
-                <div className="side-title">/// Sysop's chores</div>
+                <div className="side-title">/// Sysop's chores · blue-box free</div>
                 <button className="todo" onclick={() => service.newProject()}>
                     <span className="todo-mark">01</span>
                     <span><strong>Start a fresh sketch</strong><small>Blank tape, no pressure.</small></span>
@@ -90,7 +90,7 @@ export const BulletinBoard = ({service}: Construct) => (
         <footer className="board-footer">
             <span>SYSOP: METAL-DUCK</span>
             <span>MSG BASE: OPEN</span>
-            <span>NO CARRIER? NEVER.</span>
+            <span>CAP'N SAYS: NO CARRIER? NEVER.</span>
         </footer>
     </section>
 )
