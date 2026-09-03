@@ -21,6 +21,6 @@ follow these steps:
 * Open Firefox Settings
 * Navigate to Privacy & Security
 * Scroll down to Permissions and find Storage Permissions
-* Click Exceptions and enter the openDAW studio URL `https://opendaw.studio`
+* Click Exceptions and enter the URL of *this* studio instance
 * Select Allow and confirm the changes
 * Restart Firefox for the settings to take effect

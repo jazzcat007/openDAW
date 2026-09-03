@@ -10,7 +10,7 @@ Open the openDAW menu and select **Join Live Room...**. A dialog will ask for:
 - **Your Name** -- how other users will see you (max 16 characters).
 - **Your Color** -- pick a color from the palette. This color identifies you in the room status bar and the chat.
 
-The dialog shows a shareable join link (e.g. `https://opendaw.studio/join/my-room`). Click it to copy it to the clipboard and send it to anyone you want to invite.
+The dialog shows a shareable join link (e.g. `https://metalduckstudio.screwpulp.net/join/my-room`). Click it to copy it to the clipboard and send it to anyone you want to invite.
 
 You can also join directly by visiting a `/join/{roomName}` URL in your browser.
 

@@ -52,11 +52,11 @@ Do this once for the whole school, as the admin.
    download the `webapppassword` release archive, upload the unpacked `webapppassword/` folder into
    your Nextcloud `apps/` directory via SFTP, then enable it under **Apps**.
 3. Click your avatar, then **Administration settings**, then **WebAppPassword** in the left sidebar.
-4. In the **WebDAV/CalDAV allowed origins** field, add `https://opendaw.studio`, then click
+4. In the **WebDAV/CalDAV allowed origins** field, add the origin of *this* studio instance (e.g. `https://your-studio.example.com`), then click
    **Set origins**.
    If you cannot use the app store, set this instead in `config/config.php` via SFTP:
    ```php
-   'webapppassword.origins' => ['https://opendaw.studio'],
+   'webapppassword.origins' => ['https://your-studio.example.com'],
    ```
 
 ### Test the connection (optional)

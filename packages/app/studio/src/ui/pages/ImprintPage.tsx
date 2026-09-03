@@ -15,7 +15,7 @@ export const ImprintPage: PageFactory<StudioService> = ({lifecycle}: PageContext
         <p>
             <span style={{color: Colors.cream.toString()}}>André Michelle</span><br/>
             <span style={{color: Colors.dark.toString()}}>Cologne, Germany</span><br/>
-            Email: <a style={{color: Colors.blue}} href="mailto:hello@opendaw.org">hello@opendaw.org</a>
+            Email: contact via studio owner
         </p>
         <p>
             This website is a personal, non-commercial project.<br/>

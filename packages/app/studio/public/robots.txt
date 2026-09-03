@@ -31,5 +31,3 @@ Disallow: /stats
 Disallow: /test
 Disallow: /upload
 Disallow: /users
-
-Sitemap: https://opendaw.studio/sitemap.xml

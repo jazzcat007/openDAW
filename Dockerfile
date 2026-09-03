@@ -22,8 +22,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 WORKDIR /app
 
 ENV VITE_VJS_USE_LOCAL_SERVER=true \
-    VITE_VJS_LOCAL_SERVER_URL=wss://daw.screwpulp.net/live \
-    VITE_VJS_ONLINE_SERVER_URL=wss://daw.screwpulp.net/live \
+    VITE_VJS_LOCAL_SERVER_URL=wss://metalduckstudio.screwpulp.net/live \
+    VITE_VJS_ONLINE_SERVER_URL=wss://metalduckstudio.screwpulp.net/live \
     TURBO_TELEMETRY_DISABLED=1
 
 COPY package.json package-lock.json ./

@@ -134,10 +134,9 @@ Server übertragen. Die Daten verbleiben vollständig auf dem Gerät des Nutzers
 
 ## Einsatz im Unterricht
 
-### Sofort einsatzbereit
+### Zugriff
 
-openDAW kann direkt unter [opendaw.studio](https://opendaw.studio) genutzt werden. Es ist keine Installation, keine
-Registrierung und keine Konfiguration erforderlich. Lernende können sofort mit der Musikproduktion beginnen.
+Metal-Duck Studio ist ein privates, einladungsbasiertes Studio. Der Zugriff erfolgt ausschließlich über persönliche Einladungslinks. Es ist keine öffentliche Registrierung möglich.
 
 ### Self-Hosting
 
@@ -146,10 +145,9 @@ Servern betrieben werden. Der vollständige Quellcode ist auf GitHub verfügbar.
 
 ## Angebot für Bildungseinrichtungen
 
-### Kostenlose Nutzung
+### Nutzung
 
-openDAW ist für die allgemeine Nutzung kostenlos verfügbar. Einzelpersonen, Lehrende und Lernende können die Plattform
-unter [opendaw.studio](https://opendaw.studio) ohne Einschränkungen nutzen.
+Metal-Duck Studio ist für eingeladene Nutzer zugänglich. Der Zugang wird individuell gewährt.
 
 ### Institutionelle Lizenz
 
@@ -170,4 +168,3 @@ Sprechen Sie uns an für ein individuelles Angebot, das zu Ihrer Einrichtung pas
 Für Fragen, Feedback oder Kooperationsanfragen:
 
 * GitHub: [github.com/andremichelle/opendaw](https://github.com/andremichelle/opendaw)
-* E-Mail: [andre.michelle@opendaw.org](mailto:andre.michelle@opendaw.org)

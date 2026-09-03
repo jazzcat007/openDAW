@@ -18,8 +18,6 @@ export const PrivacyPage: PageFactory<StudioService> = ({lifecycle}: PageContext
         <h3>Data</h3>
         <p>No data mining, no tracking, no BS. Your files are yours. We don't touch 'em.</p>
         <h3>Contact</h3>
-        <p>Questions? Talk to the duck. <a style={{color: Colors.blue}}
-                                                        href="mailto:hello@opendaw.org">hello@opendaw.org</a>
-        </p>
+        <p>Questions? Talk to the duck. Contact via studio owner.</p>
     </div>
 )

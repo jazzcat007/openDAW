@@ -94,10 +94,7 @@ export const ProjectProfileInfo = ({lifecycle, service}: Construct) => {
                 <div className="label"/>
                 <div style={{display: "flex", flexDirection: "column", rowGap: "1em"}}>
                     <div>
-                        Publish your music to <a href="https://music.opendaw.studio"
-                                                 style={{color: Colors.purple}}
-                                                 target="music.opendaw.studio">our music
-                        page</a>
+                        Publishing is disabled in this private studio.
                     </div>
                     <div style={{display: "flex", columnGap: "1em"}}>
                         <Button lifecycle={lifecycle}

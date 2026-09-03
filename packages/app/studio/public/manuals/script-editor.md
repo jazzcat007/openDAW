@@ -3,7 +3,7 @@
 The script editor lets you write a few lines of TypeScript that create a new project or change the one you have open.
 You find it under openDAW menu > Script Editor.
 
-The complete documentation lives at [opendaw.studio/docs/scripting](/docs/scripting/), with a guide, a cookbook and
+The complete documentation lives at `/docs/scripting/`, with a guide, a cookbook and
 the reference of everything a script can touch. This page covers the editor itself.
 
 ## Running
