@@ -3,6 +3,7 @@ import {createElement} from "@opendaw/lib-jsx"
 import {StudioService} from "@/service/StudioService.ts"
 import {PageFactory, PageContext} from "@opendaw/lib-jsx"
 import {Html} from "@opendaw/lib-dom"
+import {RouteLocation} from "@opendaw/lib-jsx"
 import {AdminApi} from "@/admin/AdminApi"
 import {BackButton} from "@/ui/pages/BackButton"
 
@@ -71,11 +72,18 @@ export const UserProfilePage: PageFactory<StudioService> = async ({service}: Pag
         {successLine}
     </form>
 
+    const logoutButton: HTMLButtonElement = <button type="button" className="logout">Logout</button> as HTMLButtonElement
+    logoutButton.onclick = async () => {
+        await AdminApi.logout()
+        RouteLocation.get().navigateTo("/")
+    }
+
     return (
         <div className={className}>
             <BackButton service={service}/>
             <h1>Profile</h1>
             <p>Signed in as <strong>{me.user?.username}</strong> ({me.user?.role})</p>
+            {logoutButton}
             {form}
         </div>
     )
