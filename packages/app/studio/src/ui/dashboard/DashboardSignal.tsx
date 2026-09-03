@@ -56,7 +56,11 @@ export const DashboardSignal = ({lifecycle}: { lifecycle: Lifecycle }) => (
     <div className={className} onInit={element => {
         const render = () => {
             const {headline, body} = nextSignal()
-            replaceChildren(element, <><div className="signal-headline">{headline}</div><div className="signal-body">{body}</div></>)
+            replaceChildren(
+                element,
+                <div className="signal-headline">{headline}</div>,
+                <div className="signal-body">{body}</div>
+            )
         }
         render()
         const interval = window.setInterval(render, 18_000)

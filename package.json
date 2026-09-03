@@ -14,7 +14,6 @@
     "import-demos": "node scripts/import-demos.mjs",
     "import-samples": "node scripts/import-samples.mjs",
     "import-soundfonts": "node scripts/import-soundfonts.mjs",
-    "import-demos": "node scripts/import-demos.mjs",
     "dev:studio": "turbo run dev --filter=@opendaw/app-studio",
     "dev:lab": "turbo run dev --filter=@opendaw/lab",
     "dev:yjs-server": "turbo run dev --filter=yjs-server",

@@ -25,7 +25,7 @@ export const showProjectSharingDialog = async (uuid: UUID.Bytes, projectName: st
             <p style={{margin: "0"}}>Only invited collaborators can open <strong>{projectName}</strong>.</p>
             <div style={{display: "grid", gridTemplateColumns: "1fr auto", gap: "0.5em 1em", alignItems: "center"}}>
                 <span>{owner?.username ?? "Project owner"} (owner)</span><span>Owner</span>
-                {rows.map(({user, select}) => (<><span>{user.username}</span>{select}</>))}
+                {rows.flatMap(({user, select}) => [<span>{user.username}</span>, select])}
             </div>
             {rows.length === 0 && <p style={{margin: "0"}}>No other active users are available yet.</p>}
             {errorLine}

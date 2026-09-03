@@ -8,10 +8,8 @@ import {IntroTiles} from "@/ui/dashboard/IntroTiles"
 import {ActionButtons} from "@/ui/dashboard/ActionButtons"
 import {Backup} from "@/ui/dashboard/Backup"
 import {Sponsors} from "@/ui/dashboard/Sponsors"
-import {Contributors} from "@/ui/dashboard/Contributors"
 import {SampleProviders} from "@/ui/dashboard/SampleProviders"
 import {HelpFeedback} from "@/ui/dashboard/HelpFeedback"
-import {Links} from "@/ui/dashboard/Links"
 import {DashboardSignal} from "@/ui/dashboard/DashboardSignal"
 
 const className = Html.adoptStyleSheet(css, "Dashboard")

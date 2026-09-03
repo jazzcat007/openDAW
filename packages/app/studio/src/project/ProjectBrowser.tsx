@@ -89,29 +89,30 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                                                    <div className="labels"
                                                         onclick={() => select([uuid, meta])}
                                                         onInit={element => lifecycle.own(ContextMenu.subscribe(element,
-                                                            collector => collector.addItems(
-                                                                MenuItem.default({label: "Show UUID"})
-                                                                    .setTriggerProcedure(() => RuntimeNotifier.info({
-                                                                        headline: meta.name,
-                                                                        message: UUID.toString(uuid)
-                                                                    })),
-                                                                MenuItem.default({label: "Download File"})
-                                                                    .setTriggerProcedure(async () => {
-                                                                        const {status, error} = await Promises.tryCatch(
-                                                                            (async () => (await ServerProjects.isAvailable()
-                                                                                ? ServerProjects.loadProject(uuid)
-                                                                                : ProjectStorage.loadProject(uuid)))()
-                                                                                .then(arrayBuffer =>
-                                                                                    Files.save(arrayBuffer, {
-                                                                                        suggestedName: `${meta.name}.od`,
-                                                                                        types: [FilePickerAcceptTypes.ProjectFileType]
-                                                                                    })))
-                                                                        if (status === "rejected" && !Errors.isAbort(error)) {
-                                                                            console.warn(error)
-                                                                            RuntimeNotifier.notify({message: "Download failed.", icon: "Warning"})
-                                                                        }
-                                                                    })),
-                                                                MenuItem.default({label: "Share..."})
+                                                            collector => {
+                                                                collector.addItems(
+                                                                    MenuItem.default({label: "Show UUID"})
+                                                                        .setTriggerProcedure(() => RuntimeNotifier.info({
+                                                                            headline: meta.name,
+                                                                            message: UUID.toString(uuid)
+                                                                        })),
+                                                                    MenuItem.default({label: "Download File"})
+                                                                        .setTriggerProcedure(async () => {
+                                                                            const {status, error} = await Promises.tryCatch(
+                                                                                (async () => (await ServerProjects.isAvailable()
+                                                                                    ? ServerProjects.loadProject(uuid)
+                                                                                    : ProjectStorage.loadProject(uuid)))()
+                                                                                    .then(arrayBuffer =>
+                                                                                        Files.save(arrayBuffer, {
+                                                                                            suggestedName: `${meta.name}.od`,
+                                                                                            types: [FilePickerAcceptTypes.ProjectFileType]
+                                                                                        })))
+                                                                            if (status === "rejected" && !Errors.isAbort(error)) {
+                                                                                console.warn(error)
+                                                                                RuntimeNotifier.notify({message: "Download failed.", icon: "Warning"})
+                                                                            }
+                                                                        }))
+                                                                collector.addItems(MenuItem.default({label: "Share..."})
                                                                     .setTriggerProcedure(async () => {
                                                                         const {status, error} = await Promises.tryCatch(
                                                                             showProjectSharingDialog(uuid, meta.name))
@@ -122,7 +123,8 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                                                                         if (status === "resolved") {
                                                                             RuntimeSignal.dispatch(ProjectSignals.StorageUpdated)
                                                                         }
-                                                                    })))}>
+                                                                    }))
+                                                            }))}>
                                                        <div className="name">{meta.name}{shared && <span className="shared">Shared</span>}</div>
                                                        <div className="time">{timeString}</div>
                                                    </div>
