@@ -28,6 +28,7 @@ tsconfig.tsbuildinfo
 /packages/server/assets.opendaw.studio/
 /packages/server/logs.opendaw.studio/
 packages/app/studio/.env
+/factory-staging/
 /assets.opendaw.studio/models/**/*.onnx
 /assets.opendaw.studio/models/**/*.onnx.partial
 /presets/
