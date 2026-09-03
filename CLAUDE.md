@@ -31,3 +31,13 @@
 - **Analyze bugs and propose fixes, but wait for approval before editing code.**
 - **Never commit.** Only run `git commit` when explicitly asked, for that commit. Finished, tested and verified work is ready to be committed, it is not permission to commit it.
 - **Never use `Write` to rewrite existing files** — always use `Edit` (small diffs).
+
+## MemPalace
+
+- Search MemPalace before answering questions about prior decisions, project history, architecture choices, unresolved issues, or earlier work when MCP tools are available; use `mempalace_search` with `wing: opendaw` when applicable.
+- If MCP is unavailable, use `mempalace search "<query>" --wing opendaw` as a fallback.
+- Treat current repository files and git state as authoritative for present behavior; use MemPalace for historical context and reconcile conflicts explicitly.
+- Attribute retrieved memories with wing, room, drawer/source, and relevance when available.
+- Record meaningful decisions, milestones, root causes, and durable conventions when a MemPalace write tool is available. Never record secrets, credentials, tokens, or sensitive personal data.
+- Ask before mining repository files, conversation logs, or other directories; state the source path and mining mode first.
+- Keep MemPalace local-first and do not send project content to external services without explicit user approval.

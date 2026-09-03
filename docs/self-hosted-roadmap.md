@@ -40,6 +40,14 @@ The quickest path to a richer self-hosted studio is to grow the catalog first, b
    - Medium-term: make Tone3000/NAM asset handling local-first.
    - Long-term: add new DSP devices through the existing box/adapter/core-wasm pattern.
 
+## Sequencers
+
+Goal: a family of pattern-based and generative MIDI-generating devices, starting with a Euclidean rhythm sequencer. Full design in `plans/euclidean-sequencer.md`.
+
+- Builds on real existing precedent rather than starting cold: Arpeggio (`crates/stock-devices/device-arpeggio`) already implements the rate-grid/scheduling machinery a sequencer needs; Cubed already proves the box schema can hold self-contained step patterns; Spielwerk (scriptable MIDI effect) already advertises step sequencers and probability filters as example scripts, making it a zero-risk place to prototype the Euclidean algorithm before writing native DSP.
+- Order: prototype in Spielwerk → extract Arpeggio's generic scheduling code into a shared module (so it isn't copy-pasted into every new sequencer) → ship the native Euclidean Sequencer device → use the same shared module for a probability/trigger sequencer and a polymeter/polyrhythm sequencer → a random-walk/Markov melodic sequencer as a separate, larger design (generates pitch, not just rhythm).
+- Follows the current device-adding process (schema → adapter → Rust/WASM DSP → UI editor → the four dispatch-table registrations), not the proposed-but-unbuilt runtime device-loading system in `plans/loading-devices-at-runtime.md`.
+
 ## Design Overhaul
 
 Direction: retro-future synthwave, under the working brand `Metal-Duck Studios`.
@@ -155,6 +163,38 @@ Implementation phases:
    - Per-project export bundles so no work is locked into the server.
    - Recovery path for browser OPFS drafts that have not synced yet.
 
+## Project Versioning
+
+Goal: let people see and recover a project's history, not just have it silently exist on disk.
+
+Current state — the server mechanics already exist, but nothing surfaces them to a user:
+
+- Every save (`PUT /api/projects/:uuid/file`) auto-snapshots the previous `project.od` into `revisions/<ISO-timestamp>.od` before overwriting it (`docker-server.mjs:442-453`), capped at the 20 most recent revisions (`PROJECT_REVISION_LIMIT`) — oldest deleted first.
+- `GET /api/projects/:uuid/revisions` lists the stamps; `GET /api/projects/:uuid/revisions/:stamp` downloads one revision's raw bytes. Both exist server-side.
+- Live Room autosnapshotting (Server-First Collaboration Model phase 3) writes through the same `PUT .../file` path, so active Live Room sessions already feed this history for free.
+- **Nothing client-side reads any of this.** No Version History panel, no restore button, no labeling, no per-revision author, no diff. The only client reference to `revision` in the whole app is the write-side autosnapshot trigger in `StudioLiveRoomConnect.ts` — nothing ever calls the list/download endpoints.
+- The cap is count-based and blind to intent: 20 slots get consumed by routine autosaves as fast as by deliberate checkpoints, so a deliberate "before I try this" save can silently roll off within one active editing session.
+- There's no restore endpoint — restoring today would mean downloading a revision's bytes and re-`PUT`ing them as current (itself safe, since it snapshots the state being replaced), but no code path does this yet.
+- Versioning only exists for server-backed projects. OPFS-only/local projects have no history at all — consistent with this fork's existing stance that OPFS is a cache/recovery copy and the server is primary, so scoping versioning to server-backed projects only is reasonable rather than a gap to close.
+
+Proposed phases:
+
+1. Ship a Version History panel — the highest-leverage step, since the server side already works.
+   - Surface `GET .../revisions` as a list (relative timestamps) in the Project browser / project menu.
+   - Add restore: safest as a dedicated `POST /api/projects/:uuid/revisions/:stamp/restore` (atomic on the server) rather than a client-side GET+PUT round trip, to avoid a race against a concurrent Live Room autosnapshot landing mid-restore.
+   - A lightweight diff/preview (name, cover, track count, duration) before committing to restore, so it's not a blind swap.
+
+2. Separate deliberate checkpoints from autosave churn.
+   - Add a "Save as Version" action that writes a named/labeled revision, distinct from the silent autosave-on-save snapshot.
+   - Exempt named versions from the rolling 20-slot cap (or give them their own, larger/unbounded bucket) so a labeled checkpoint can't be evicted by ordinary autosave noise.
+   - This needs each revision to carry more than a filename: a small sidecar (author, label, timestamp) next to the `.od` file, the same way `meta.json` already sits next to `project.od`.
+
+3. Converge with A/B project variants (see Live Collaboration Features below).
+   - A "named version" here and a "labeled variant" there are the same underlying object — one labeled, restorable snapshot mechanism should serve both project history browsing and A/B mix comparison, rather than building two parallel systems that drift apart.
+
+4. Extend Admin visibility.
+   - The Admin "Projects" section (Server-First Collaboration Model phase 5) already lists storage usage/export as open items — add per-project revision count/size there, plus a manual prune action, once revisions can carry labels worth protecting from the cap.
+
 ## Live Collaboration Features
 
 Goal: give collaborators the signals they'd expect from any shared document — who's touching what, a place to leave notes, and a way to compare alternatives — on top of the existing Live Room / Yjs sync layer.
@@ -190,8 +230,8 @@ Model on the existing `MarkerBox` pattern (`packages/studio/forge-boxes/src/sche
 
 Scoped to project-level compare, not per-device bypass toggling (that's a local, single-user, non-collaborative UI feature — worth a future roadmap line of its own, but it doesn't belong in this batch).
 
-- Build directly on the revision snapshot mechanism already listed under Server-First Collaboration Model rather than inventing new storage.
-- Needs: a way to tag/name a snapshot as a labeled variant (not just an autosave point), a compare UI to switch the working state between two named variants without losing either, and playback that can instant-switch (crossfade later) between them for A/B listening.
+- Build directly on the labeled-revision mechanism from Project Versioning above rather than inventing new storage — a "variant" is a named version, just presented as a compare pair instead of a linear history list.
+- Needs: a compare UI to switch the working state between two named versions without losing either, and playback that can instant-switch (crossfade later) between them for A/B listening.
 - Collaboration angle: variants should be visible to everyone with access to the Project, not local `Save As` copies — "your mix" vs "my mix" as two variants of one Project, not two separate Projects, so history doesn't fragment.
 - Open question: does switching variants swap the whole box graph (heavy, but simple — reuses existing snapshot restore) or diff just the mixer/device state (lighter switching, much more invasive to build)? Recommend starting with whole-graph swap since the snapshot/restore plumbing is closest to already existing.
 

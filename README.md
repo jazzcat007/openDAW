@@ -9,9 +9,7 @@
 <a href="https://github.com/andremichelle/opendaw" rel="nofollow"><img src="https://img.shields.io/github/stars/andremichelle/opendaw" alt="stars"></a>
 </p>
 
-**openDAW** is a next-generation web-based Digital Audio Workstation (DAW) designed to **democratize** music production
-and to **resurface the process of making music** by making **high-quality** creation tools accessible to everyone, with
-a strong focus on **education** and data-privacy.
+**Metal-Duck Studios** — private studio, invite-only, 80s neon attitude. Built on openDAW's engine, but this is our lair, not the public playground.
 
 Subscribe to our [Newsletter](https://buttondown.com/opendaw) for regular updates.
 
@@ -30,18 +28,14 @@ We are committed to transparency and community-driven development.
 
 The source code for openDAW is available under **AGPL v3 (or later)**
 
-### Built on Trust and Transparency
+### House Rules
 
-**openDAW stands for radical simplicity and respect.**
+**Welcome to the lair. No tourists.**
 
-- **No SignUp**
-- **No Tracking**
-- **No Cookie Banners**
-- **No User Profiling**
-- **No Terms & Conditions**
-- **No Ads**
-- **No Paywalls**
-- **No Data Mining**
+- **Invite-only** — friends and family only, no randoms
+- **Server-backed tapes** — your work stays put with full history
+- **Private rig** — Metal-Duck's studio, not the internet's
+- **Neon attitude** — Chipmunk Punk meets Disco Duck, 80s rocker vibes only
 
 ---
 

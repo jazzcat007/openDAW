@@ -40,7 +40,7 @@ const generateSummary = async (commitLog: string): Promise<string | null> => {
             thinking: {type: "adaptive"},
             system: [
                 "You write short deploy announcements for the openDAW community Discord.",
-                "openDAW is a free browser-based digital audio workstation.",
+                "Metal-Duck Studios is a private, self-hosted music studio for invited collaborators.",
                 "You receive the raw git commit subjects since the last deploy.",
                 "Summarize only what users of the app would notice: new features, fixed bugs, audible or visible changes.",
                 "Merge related commits into one line. Skip internal refactors, build tooling, docs, and version bumps unless they matter to users.",

@@ -849,6 +849,41 @@ const serveAuthApi = async (req, res) => {
     sendJson(res, 200, {ok: true})
     return
   }
+  if (segment === "password") {
+    if (req.method !== "POST") {
+      methodNotAllowed(res, ["POST"])
+      return
+    }
+    const user = getCurrentUser(req)
+    if (user === null) {
+      sendJson(res, 401, {error: "Authentication required"})
+      return
+    }
+    if (user.disabledAt !== null) {
+      sendJson(res, 403, {error: "Account disabled"})
+      return
+    }
+    const parsed = tryParseJson(await readBody(req, 4096))
+    const currentPassword = typeof parsed?.currentPassword === "string" ? parsed.currentPassword : ""
+    const newPassword = typeof parsed?.newPassword === "string" ? parsed.newPassword : ""
+    if (newPassword.length < 8) {
+      sendJson(res, 400, {error: "Password must be at least 8 characters"})
+      return
+    }
+    if (!verifyPassword(currentPassword, user.passwordHash)) {
+      sendJson(res, 401, {error: "Current password is incorrect"})
+      return
+    }
+    user.passwordHash = hashPassword(newPassword)
+    persistUsers()
+    destroySessionsForUser(user.id)
+    const session = getSession(req)
+    if (session !== null) {
+      setSessionCookie(res, createSession(user.id))
+    }
+    sendJson(res, 200, {ok: true})
+    return
+  }
   sendJson(res, 404, {error: "Not found"})
 }
 

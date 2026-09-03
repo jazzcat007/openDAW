@@ -1,13 +1,13 @@
-# Education
+# The Break Room
 
-openDAW is built with a strong focus on education. It is free to use, needs no account, and runs on any modern browser, which makes it well suited for classrooms and self-study.
+No classrooms here, pal. This is Metal-Duck's private lair — invite-only, friends and family only. If you're reading this, you're in the club. Upstream openDAW has the education stuff; we have the after-hours jam session.
 
 ![Classroom](../images/classroom.webp)
 
-## For learners
+## For the crew
 
-Start from an empty project or take apart one of the demo tracks to see how a finished piece is put together. Because the whole studio is open, you can inspect every device and setting as you go.
+Start with a blank tape or dissect one of the demo tracks. Everything's exposed — no black boxes, no mysteries. You can see how it's wired because we're all in this together.
 
-## For educators
+## The deal
 
-There is nothing to install or license, and no student data leaves the device. Read more about the education program at [opendaw.org/education](https://opendaw.org/education).
+Invite-only, self-hosted, your work stays put. Projects live on the server with full history. Come back in six months and it'll be exactly where you left it — like a good amp left on standby.

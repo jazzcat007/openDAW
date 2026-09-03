@@ -1,6 +1,6 @@
-# Introduction
+# Welcome to the Lair
 
-openDAW is a full music studio that runs entirely in your browser. There is nothing to install and no account to create.
+Metal-Duck Studios. Private studio. Invite-only. This ain't the public playground — it's our room, our gear, our people. Same engine as openDAW, but with the door locked and the lights set to neon.
 
 ![openDAW studio](../images/studio.webp)
 
@@ -16,8 +16,8 @@ openDAW is a full music studio that runs entirely in your browser. There is noth
 | Shortcut Manager | DAWproject In / Out | Piano Tutorial Mode | Video Export |
 | Tempo Automation | Signature Automation | Marker Track | Preset Management |
 
-## Getting started
+## Crank it up
 
-Click **New Project** on the dashboard to open an empty timeline, or open one of the demo projects to see a finished track you can take apart. From there, add a track, drop in an instrument, and start writing.
+Hit **New Project** on the dashboard for a fresh tape, or raid the demo vault to tear apart a finished track. Load a track, drop in an axe or synth, and start shredding.
 
-Everything you make is saved locally on your device. See [Project Management](/manuals/project-management) to learn where projects are stored, how to back them up, and how to share them.
+Your work lives on the studio server — not some cloud circus. It's yours, it stays, and you can come back to it months later when inspiration hits. See [Project Management](/manuals/project-management) for the nitty-gritty.

@@ -27,7 +27,7 @@ import {PerformancePage} from "@/ui/pages/PerformancePage"
 import {SampleReadPage} from "@/ui/pages/SampleReadPage"
 import {SpikeTestPage} from "@/ui/pages/SpikeTestPage"
 import {AdminPage} from "@/ui/pages/AdminPage"
-import {UserProfilePage} from "@/ui/pages/UserProfilePage"
+import {UserProfilePage} from "@/ui/pages/UserProfilePage.tsx"
 
 export const App = (service: StudioService) => {
     const terminator = new Terminator()
@@ -53,6 +53,7 @@ export const App = (service: StudioService) => {
                     {path: "/create", factory: WorkspacePage, reuse: true},
                     {path: "/manuals/*", factory: ManualPage},
                     {path: "/preferences", factory: PreferencesPage},
+                    {path: "/profile", factory: UserProfilePage},
                     {path: "/imprint", factory: ImprintPage},
                     {path: "/privacy", factory: PrivacyPage},
                     {path: "/icons", factory: IconsPage},
@@ -66,7 +67,6 @@ export const App = (service: StudioService) => {
                     {path: "/graph", factory: GraphPage},
                     {path: "/stats", factory: DashboardPage},
                     {path: "/admin", factory: AdminPage},
-                    {path: "/profile", factory: UserProfilePage},
                     {
                         path: "/users", factory: (context) => {
                             history.replaceState(null, "", "/stats")

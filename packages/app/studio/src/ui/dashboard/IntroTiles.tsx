@@ -16,37 +16,33 @@ type Tile = {
 const tiles: ReadonlyArray<Tile> = [
     {
         icon: IconSymbol.Timeline,
-        title: "Your Studio",
-        text: "Instruments, effects, a mixer, MIDI and audio recording, all in one place. Arrange, produce and "
-            + "mix complete tracks.",
+        title: "The Lair",
+        text: "Guitars, synths, a mixer, MIDI and audio recording — all in one neon-lit room. Build tracks from "
+            + "scratch and make 'em loud.",
         path: "/manuals/introduction"
     },
     {
         icon: IconSymbol.Connected,
-        title: "Live Rooms",
-        text: "Open a room, share the link, and make music together in real time. Everyone edits the same "
-            + "session at once.",
+        title: "Jam Rooms",
+        text: "Fire up a room, bring the crew in, and play together live. Same session, same vibe, real time.",
         path: "/manuals/live-rooms"
     },
     {
         icon: IconSymbol.Book,
-        title: "Education",
-        text: "Made for learning music production, from your first beat to a finished track. Classroom-friendly "
-            + "and free to use.",
+        title: "House Rules",
+        text: "Invite-only. Friends and family. No randoms. Your tapes stay in the vault with full history.",
         path: "/manuals/education"
     },
     {
         icon: IconSymbol.Lock,
-        title: "Privacy",
-        text: "No account, no subscription, no tracking. Your projects stay on your device and are never "
-            + "uploaded to our servers.",
+        title: "Locked Down",
+        text: "Metal-Duck's private rig. Invite-only access, server-backed, no public peeking.",
         path: "/privacy"
     },
     {
         icon: IconSymbol.Code,
-        title: "Open Source",
-        text: "openDAW is open source. Inspect it, fork it, self-host it, or build your own devices and "
-            + "extensions on top.",
+        title: "Hack the Rig",
+        text: "openDAW's open source. Tear it apart, fork it, build your own boxes and extensions. Make it yours.",
         path: "/manuals/open-source"
     }
 ]
