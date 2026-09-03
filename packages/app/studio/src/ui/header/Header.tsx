@@ -79,55 +79,62 @@ export const Header = ({lifecycle, service}: Construct) => {
     const {preferences} = service.engine
     return (
         <header className={className}>
-            <MenuButton root={service.menu}
-                        appearance={{color: Colors.gray, activeColor: Colors.bright, tinyTriangle: true}}>
-                <h5 className="studio-mark">
-                    <img src="/images/metal-duck-icon.webp" alt="Metal Duck"/>
-                    <span>Metal-Duck Studio</span>
-                </h5>
-            </MenuButton>
-            <MenuButton root={MenuItem.root()
-                .setRuntimeChildrenProcedure(parent =>
-                    parent.addMenuItem(
-                        MenuItem.header({label: "Manuals", icon: IconSymbol.OpenDAW, color: Colors.green}),
-                        ...addManualMenuItems(Manuals)
-                    ))} appearance={{color: Colors.green, tinyTriangle: true}}>
-                <Icon symbol={IconSymbol.Help}/>
-            </MenuButton>
-            <hr/>
-            <Group onInit={element => StudioPreferences.catchupAndSubscribe(enabled =>
-                element.classList.toggle("hidden", !enabled), "visibility", "enable-history-buttons")}>
-                <UndoRedoButtons lifecycle={lifecycle} service={service}/>
-                <hr/>
-            </Group>
-            <div style={{display: "flex", columnGap: "4px"}}>
-                <Checkbox lifecycle={lifecycle}
-                          model={MidiDevices.available()}
-                          appearance={{activeColor: Colors.orange, tooltip: "Midi Access", cursor: "pointer"}}>
-                    <Icon symbol={IconSymbol.Midi}/>
-                </Checkbox>
-                <CaptureMidiButton lifecycle={lifecycle} service={service}/>
+            <div className="mobile-brand">
+                <MenuButton root={service.menu}
+                            appearance={{color: Colors.gray, activeColor: Colors.bright, tinyTriangle: true}}>
+                    <h5 className="studio-mark">
+                        <img src="/images/metal-duck-icon.webp" alt="Metal Duck"/>
+                        <span>Metal-Duck Studio</span>
+                    </h5>
+                </MenuButton>
             </div>
-            <hr/>
-            <TransportGroup lifecycle={lifecycle} service={service}/>
-            <hr/>
-            <TimeStateDisplay lifecycle={lifecycle} service={service}/>
-            <BaseFrequencyControl lifecycle={lifecycle} service={service}/>
-            <hr/>
-            <MetronomeControl lifecycle={lifecycle}
-                              service={service}
-                              preferences={preferences}/>
-            <hr/>
-            <div style={{flex: "1 0 0"}}/>
-            {
-                location.origin.includes("dev.opendaw.studio")
-                && (<h5 style={{color: Colors.cream.toString()}}>DEV VERSION (UNSTABLE)</h5>)}
-            <div style={{flex: "2 0 0"}}/>
-            <HorizontalPeakMeter lifecycle={lifecycle} peaksInDb={peaksInDb} width="4em"/>
-            <hr/>
-            <div className="panel-selector">
-                <RadioGroup lifecycle={lifecycle}
-                            model={new class implements ObservableValue<Nullable<Workspace.ScreenKeys>> {
+            <div className="desktop-header">
+                <MenuButton root={MenuItem.root()
+                    .setRuntimeChildrenProcedure(parent =>
+                        parent.addMenuItem(
+                            MenuItem.header({label: "Manuals", icon: IconSymbol.OpenDAW, color: Colors.green}),
+                            ...addManualMenuItems(Manuals)
+                        ))} appearance={{color: Colors.green, tinyTriangle: true}}>
+                    <Icon symbol={IconSymbol.Help}/>
+                </MenuButton>
+                <hr/>
+                <Group onInit={element => StudioPreferences.catchupAndSubscribe(enabled =>
+                    element.classList.toggle("hidden", !enabled), "visibility", "enable-history-buttons")}>
+                    <UndoRedoButtons lifecycle={lifecycle} service={service}/>
+                    <hr/>
+                </Group>
+                <div style={{display: "flex", columnGap: "4px"}}>
+                    <Checkbox lifecycle={lifecycle}
+                              model={MidiDevices.available()}
+                              appearance={{activeColor: Colors.orange, tooltip: "Midi Access", cursor: "pointer"}}>
+                        <Icon symbol={IconSymbol.Midi}/>
+                    </Checkbox>
+                    <CaptureMidiButton lifecycle={lifecycle} service={service}/>
+                </div>
+                <hr/>
+            </div>
+            <div className="mobile-transport">
+                <TransportGroup lifecycle={lifecycle} service={service}/>
+            </div>
+            <div className="desktop-header">
+                <hr/>
+                <TimeStateDisplay lifecycle={lifecycle} service={service}/>
+                <BaseFrequencyControl lifecycle={lifecycle} service={service}/>
+                <hr/>
+                <MetronomeControl lifecycle={lifecycle}
+                                  service={service}
+                                  preferences={preferences}/>
+                <hr/>
+                <div style={{flex: "1 0 0"}}/>
+                {
+                    location.origin.includes("dev.opendaw.studio")
+                    && (<h5 style={{color: Colors.cream.toString()}}>DEV VERSION (UNSTABLE)</h5>)}
+                <div style={{flex: "2 0 0"}}/>
+                <HorizontalPeakMeter lifecycle={lifecycle} peaksInDb={peaksInDb} width="4em"/>
+                <hr/>
+                <div className="panel-selector">
+                    <RadioGroup lifecycle={lifecycle}
+                                model={new class implements ObservableValue<Nullable<Workspace.ScreenKeys>> {
                                 setValue(value: Nullable<Workspace.ScreenKeys>): void {
                                     if (service.hasProfile) {service.switchScreen(value)}
                                 }
@@ -141,19 +148,20 @@ export const Header = ({lifecycle, service}: Construct) => {
                                     observer(this)
                                     return this.subscribe(observer)
                                 }
-                            }}
-                            elements={Object.entries(Workspace.Default)
-                                .filter(([_, {hidden}]: [string, Workspace.Screen]) => hidden !== true)
-                                .map(([key, {icon: iconSymbol, name}]) => ({
-                                    value: key,
-                                    element: <Icon symbol={iconSymbol}/>,
-                                    tooltip: ShortcutTooltip.create(name,
-                                        GlobalShortcuts[ScreenShortcutKeys[key as Workspace.ScreenKeys]].shortcut)
-                                }))}
-                            appearance={{framed: true, landscape: true}}/>
+                                }}
+                                elements={Object.entries(Workspace.Default)
+                                    .filter(([_, {hidden}]: [string, Workspace.Screen]) => hidden !== true)
+                                    .map(([key, {icon: iconSymbol, name}]) => ({
+                                        value: key,
+                                        element: <Icon symbol={iconSymbol}/>,
+                                        tooltip: ShortcutTooltip.create(name,
+                                            GlobalShortcuts[ScreenShortcutKeys[key as Workspace.ScreenKeys]].shortcut)
+                                    }))}
+                                appearance={{framed: true, landscape: true}}/>
+                </div>
+                <hr/>
+                <PerformanceStats lifecycle={lifecycle} service={service}/>
             </div>
-            <hr/>
-            <PerformanceStats lifecycle={lifecycle} service={service}/>
         </header>
     )
 }

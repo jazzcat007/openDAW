@@ -10,6 +10,10 @@ component
     grid-template-columns: repeat(5, minmax($col-min, 1fr))
     column-gap: $col-gap
 
+    .compact-workspace &
+      grid-template-columns: 1fr
+      row-gap: 1rem
+
   .tile
     display: flex
     flex-direction: column

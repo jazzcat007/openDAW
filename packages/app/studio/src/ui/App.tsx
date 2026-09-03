@@ -28,9 +28,11 @@ import {SampleReadPage} from "@/ui/pages/SampleReadPage"
 import {SpikeTestPage} from "@/ui/pages/SpikeTestPage"
 import {AdminPage} from "@/ui/pages/AdminPage"
 import {UserProfilePage} from "@/ui/pages/UserProfilePage.tsx"
+import {CompactMode} from "@/ui/workspace/CompactMode"
 
 export const App = (service: StudioService) => {
     const terminator = new Terminator()
+    CompactMode.install(terminator)
     const favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
     if (isDefined(favicon)) {
         terminator.own(service.roomAwareness.catchupAndSubscribe(owner =>

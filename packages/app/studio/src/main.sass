@@ -21,6 +21,17 @@ html, body
   background-color: var(--color-background)
   touch-action: pan-x pan-y
 
+html.compact-workspace, html.compact-workspace body
+  height: 100dvh
+
+html.compact-workspace body
+  padding-top: env(safe-area-inset-top)
+  --timeline-header-width: 8rem
+
+@media (min-width: 600px)
+  html.compact-workspace body
+    --timeline-header-width: 11rem
+
 canvas
   outline: none
   image-rendering: pixelated
