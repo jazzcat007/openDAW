@@ -184,7 +184,9 @@ Current state:
   metadata saves cannot overwrite project ownership or memberships.
 - Existing ownerless projects are deliberately admin-only until migrated, rather than becoming visible
   to every signed-in person.
-- Live Rooms are not yet restricted by linked-project membership.
+- Linked Live Rooms now enforce the linked Project's membership at room registration, room discovery,
+  Yjs WebSocket upgrade, and asset-signaling subscription/publish. Anonymous, unlinked rooms retain
+  their existing behavior.
 
 Implementation status: phases 1–3 are complete. New projects are private to their owner by default;
 owners can share a project with active instance users as editors or viewers from the Project browser.
@@ -211,7 +213,7 @@ Proposed phases:
      everyone else until this is used.
    - Surface membership (avatars/names) and a private/shared badge in the Project browser.
 
-4. Make Live Rooms respect project membership.
+4. Make Live Rooms respect project membership. **(done for linked rooms)**
    - A room started from a Project should only be joinable by that project's members, not anyone
      who guesses/receives the room name — closing the gap noted in Server-First Collaboration Model
      phase 3 ("no membership list beyond the single owner").

@@ -570,6 +570,13 @@ const serializeProjectMembers = (meta) => projectMembers(meta).map(member => {
   return {userId: member.userId, role: member.role, username: user?.username ?? "Unknown user", disabled: user?.disabledAt !== null}
 })
 
+const canAccessLinkedRoom = (roomName, user) => {
+  const link = roomLinks.find(candidate => candidate.roomName === roomName)
+  if (link === undefined) return true // Anonymous rooms retain their existing behavior.
+  const meta = readJson(join(projectFolder(link.projectUuid), "meta.json"), null)
+  return meta !== null && canReadProject(meta, user)
+}
+
 // Project metadata is edited by the client on every save. Access control is server-owned,
 // so a stale client copy (or a crafted request) cannot change ownership or memberships.
 const withoutProjectAccessFields = (meta) => {
@@ -1288,7 +1295,7 @@ const serveRoomsApi = async (req, res) => {
   const segments = url.pathname.replace(/^\/api\/rooms\/?/, "").split("/").filter(Boolean)
   if (segments.length === 0) {
     if (req.method === "GET") {
-      sendJson(res, 200, {rooms: roomLinks})
+      sendJson(res, 200, {rooms: roomLinks.filter(room => canAccessLinkedRoom(room.roomName, currentUser))})
       return
     }
     if (req.method === "POST") {
@@ -1297,6 +1304,11 @@ const serveRoomsApi = async (req, res) => {
       const projectUuid = typeof parsed?.projectUuid === "string" ? parsed.projectUuid : ""
       if (!ROOM_NAME_PATTERN.test(roomName) || !PROJECT_UUID_PATTERN.test(projectUuid)) {
         sendJson(res, 400, {error: "Invalid room name or project id"})
+        return
+      }
+      const projectMeta = readJson(join(projectFolder(projectUuid), "meta.json"), null)
+      if (projectMeta === null || !canWriteProject(projectMeta, currentUser)) {
+        sendJson(res, 403, {error: "Project edit permission required"})
         return
       }
       const existing = roomLinks.find(candidate => candidate.roomName === roomName)
@@ -1325,6 +1337,10 @@ const serveRoomsApi = async (req, res) => {
     }
     const room = roomLinks.find(candidate => candidate.roomName === segments[0])
     if (room === undefined) {
+      sendJson(res, 404, {error: "Not found"})
+      return
+    }
+    if (!canAccessLinkedRoom(room.roomName, currentUser)) {
       sendJson(res, 404, {error: "Not found"})
       return
     }
@@ -1478,7 +1494,7 @@ const scheduleSignalingCleanup = (topic) => {
   roomCleanupTimers.set(topic, timer)
 }
 
-signalingWss.on("connection", (conn, req) => {
+signalingWss.on("connection", (conn, req, currentUser) => {
   console.log("WebRTC signaling connection from", req.headers.origin)
 
   const subscribedTopics = new Set()
@@ -1491,6 +1507,11 @@ signalingWss.on("connection", (conn, req) => {
       switch (message.type) {
         case "subscribe": {
           for (const topic of message.topics || []) {
+            const roomName = typeof topic === "string" && topic.startsWith("assets:") ? topic.slice("assets:".length) : null
+            if (roomName !== null && !canAccessLinkedRoom(roomName, currentUser)) {
+              conn.send(JSON.stringify({type: "error", error: "Room access denied"}))
+              continue
+            }
             if (roomCleanupTimers.has(topic)) {
               clearTimeout(roomCleanupTimers.get(topic))
               roomCleanupTimers.delete(topic)
@@ -1513,6 +1534,12 @@ signalingWss.on("connection", (conn, req) => {
           break
         }
         case "publish": {
+          const roomName = typeof message.topic === "string" && message.topic.startsWith("assets:")
+            ? message.topic.slice("assets:".length) : null
+          if (roomName !== null && !canAccessLinkedRoom(roomName, currentUser)) {
+            conn.send(JSON.stringify({type: "error", error: "Room access denied"}))
+            break
+          }
           const subscribers = message.topic ? rooms.get(message.topic) : null
           if (subscribers) {
             const forwardMessage = JSON.stringify(message)
@@ -1559,7 +1586,8 @@ server.on("upgrade", (req, socket, head) => {
     socket.destroy()
     return
   }
-  if (getCurrentUser(req) === null) {
+  const currentUser = getCurrentUser(req)
+  if (currentUser === null) {
     socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n")
     socket.destroy()
     return
@@ -1567,12 +1595,17 @@ server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url ?? "/", "https://localhost")
   if (url.pathname === "/live/signaling") {
     signalingWss.handleUpgrade(req, socket, head, ws => {
-      signalingWss.emit("connection", ws, req)
+      signalingWss.emit("connection", ws, req, currentUser)
     })
     return
   }
   if (url.pathname.startsWith("/live/")) {
     const docName = decodeURIComponent(url.pathname.replace(/^\/live\//, ""))
+    if (!canAccessLinkedRoom(docName, currentUser)) {
+      socket.write("HTTP/1.1 403 Forbidden\r\n\r\n")
+      socket.destroy()
+      return
+    }
     yjsWss.handleUpgrade(req, socket, head, ws => {
       yjsWss.emit("connection", ws, req, docName)
     })
