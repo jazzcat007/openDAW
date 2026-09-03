@@ -20,28 +20,6 @@ type Construct = {
     service: StudioService
 }
 
-const ids = [
-    "ae8ec50bfac", // Orange 3
-    "192c9b77aaa", // Reese Boots
-    "b3c0b901b24", // Open Up
-    "8dd3364e113", // The Rocinante Experience
-    "84f9c4fbb76", // Ambition
-    "3a96772867c", // Fleur de Soul
-    "97b0564366f", // Centauri
-    "f9e029edeb0", // OpenDub Experience
-    "0d8b487992b", // Chaotic
-    "3038c24e87e", // Bury Me by Skyence Remix
-    "468309b2035", // Sturm Chaser
-    "932e7c1d1f1", // Liquid
-    "7a5be6e2478", // Ben
-    "16982e85776", // Fatso
-    "1cc67c64dde", // Seek Deeper
-    "65efa1e1f7f", // Shafted
-    "b41528b9c53", // Dub Speak
-    "b43d04558ec", // Sunset
-    "cab976763f0" // Vapor Run
-]
-
 // Self-hosted installations provision this mirror with `npm run import-demos`.
 const listUrl = "/factory/demos/projects.json"
 
