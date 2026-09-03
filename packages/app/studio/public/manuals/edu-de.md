@@ -169,7 +169,5 @@ Sprechen Sie uns an für ein individuelles Angebot, das zu Ihrer Einrichtung pas
 
 Für Fragen, Feedback oder Kooperationsanfragen:
 
-* Homepage: [opendaw.org](https://opendaw.org)
-* Discord: [discord.opendaw.studio](https://discord.opendaw.studio)
 * GitHub: [github.com/andremichelle/opendaw](https://github.com/andremichelle/opendaw)
 * E-Mail: [andre.michelle@opendaw.org](mailto:andre.michelle@opendaw.org)

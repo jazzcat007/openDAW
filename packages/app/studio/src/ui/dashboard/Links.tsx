@@ -12,12 +12,7 @@ import {RailSection} from "@/ui/dashboard/RailSection"
 type Link = { label: string, href: string, icon: IconSymbol, iconScale?: number }
 
 const links: ReadonlyArray<Link> = [
-    {label: "opendaw.org", href: "https://opendaw.org", icon: IconSymbol.OpenDAW, iconScale: 0.9},
-    {label: "GitHub", href: "https://github.com/andremichelle/openDAW", icon: IconSymbol.Github},
-    {label: "Discord", href: "https://discord.opendaw.studio/", icon: IconSymbol.Discord},
-    {label: "Instagram", href: "https://www.instagram.com/opendaw.studio", icon: IconSymbol.Instagram},
-    {label: "LinkedIn", href: "https://www.linkedin.com/company/opendaw-org", icon: IconSymbol.LinkedIn},
-    {label: "Newsletter", href: "https://buttondown.com/opendaw", icon: IconSymbol.Notification}
+    {label: "GitHub", href: "https://github.com/andremichelle/openDAW", icon: IconSymbol.Github}
 ]
 
 export const Links = () => (

@@ -1,6 +1,4 @@
-# openDAW Manuals
-
-Please join our [discord community](https://discord.opendaw.studio) for updates and news!
+# Metal-Duck Studios Manuals
 
 ## Known Issues
 

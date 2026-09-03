@@ -25,8 +25,7 @@ export const ImprintPage: PageFactory<StudioService> = ({lifecycle}: PageContext
             This imprint is provided to comply with German law.<br/>
         </p>
         <p>
-            For inquiries regarding openDAW, please use the contact above or visit <a style={{color: Colors.blue}}
-                                                                                      href="https://opendaw.org">opendaw.org</a>
+            For inquiries regarding openDAW, please use the contact above.
         </p>
     </div>
 )

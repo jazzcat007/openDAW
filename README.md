@@ -5,13 +5,10 @@
 
 <p align="center">
 <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="nofollow"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License: AGPLv3"></a>
-<a href="https://discord.gg/ZRm8du7vn4" rel="nofollow"><img src="https://img.shields.io/discord/1241019312328675399?label=Discord&logo=discord&logoColor=white" alt="discord server"></a>
 <a href="https://github.com/andremichelle/opendaw" rel="nofollow"><img src="https://img.shields.io/github/stars/andremichelle/opendaw" alt="stars"></a>
 </p>
 
 **Metal-Duck Studios** — private studio, invite-only, 80s neon attitude. Built on openDAW's engine, but this is our lair, not the public playground.
-
-Subscribe to our [Newsletter](https://buttondown.com/opendaw) for regular updates.
 
 New to the codebase? [introduction.md](introduction.md) maps every component of this repository and how they depend on
 each other.
@@ -54,8 +51,6 @@ If you are interested in helping, here are areas where we need support:
 3. **Timeline Track Management** — design and UX help for track layout, ordering, grouping, and interaction
 
 We always appreciate help on open issues: https://github.com/andremichelle/openDAW/issues
-
-To discuss contributions, book a call: https://calendly.com/andremichelle/opendaw-on-tour
 
 ---
 
@@ -219,18 +214,9 @@ Before starting, ensure you have the following installed on your system:
 * `npm run dev:studio` | `npm run dev:headless` (start dev server)
 * Navigate to https://localhost:8080 (port is important > cors sample api)
 
-[![Custom Caption: Watch the Demo](https://img.youtube.com/vi/VPTXeJY6Eaw/0.jpg)](https://www.youtube.com/watch?v=VPTXeJY6Eaw)
-
-Watch Polarity's Video *"there's a new FREE DAW in town"*
-
 ## Links
 
-* [opendaw.studio (prototype)](https://opendaw.studio)
-* [opendaw.org (website)](https://opendaw.org)
-* [openDAW on Discord](https://discord.opendaw.studio)
 * [openDAW SDK](https://www.npmjs.com/org/opendaw)
-* [LinkedIn](https://www.linkedin.com/company/opendaw-org/)
-* [Instagram](https://www.instagram.com/opendaw.studio)
 
 ## Contributions
 
