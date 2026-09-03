@@ -5,6 +5,7 @@ import {
 import {writeFile} from "node:fs/promises"
 import {createServer} from "node:http"
 import {randomBytes, randomUUID, scryptSync, timingSafeEqual} from "node:crypto"
+import {execFile} from "node:child_process"
 import {extname, join, normalize} from "node:path"
 import {WebSocketServer} from "ws"
 import * as Y from "yjs"
@@ -274,6 +275,104 @@ const sanitizeUser = (user) => ({
   disabledAt: user.disabledAt,
   lastLoginAt: user.lastLoginAt
 })
+
+let assetImportJob = null
+
+const countNestedEntries = (folders, key) => {
+  if (!Array.isArray(folders)) return 0
+  return folders.reduce((sum, folder) =>
+    sum + (Array.isArray(folder?.[key]) ? folder[key].length : 0) + countNestedEntries(folder?.folders, key), 0)
+}
+
+const directorySize = (path) => {
+  if (!existsSync(path)) return 0
+  const stat = statSync(path)
+  if (stat.isFile()) return stat.size
+  if (!stat.isDirectory()) return 0
+  return readdirSync(path).reduce((sum, name) => sum + directorySize(join(path, name)), 0)
+}
+
+const fileModifiedAt = (path) => existsSync(path) ? statSync(path).mtime.toISOString() : null
+
+const summarizeFactoryAssets = () => {
+  const demosPath = join(factoryAssetRoot, "demos")
+  const demoIndex = join(demosPath, "projects.json")
+  const sampleIndex = join(factoryAssetRoot, "samples", "index.json")
+  const soundfontIndex = join(factoryAssetRoot, "soundfonts", "index.json")
+  const presetIndex = join(factoryAssetRoot, "presets", "index.json")
+  const demos = readJson(demoIndex, {tracks: []})
+  const samples = readJson(sampleIndex, {folders: []})
+  const soundfonts = readJson(soundfontIndex, {folders: []})
+  const presets = readJson(presetIndex, [])
+  return {
+    root: factoryAssetRoot,
+    offlineOnly: factoryOfflineOnly,
+    catalogs: [
+      {
+        id: "demos",
+        label: "Demos",
+        count: Array.isArray(demos.tracks) ? demos.tracks.length : 0,
+        size: directorySize(demosPath),
+        updatedAt: fileModifiedAt(demoIndex),
+        indexPath: "/factory/demos/projects.json"
+      },
+      {
+        id: "samples",
+        label: "Samples",
+        count: countNestedEntries(samples.folders, "samples"),
+        size: directorySize(join(factoryAssetRoot, "samples")),
+        updatedAt: fileModifiedAt(sampleIndex),
+        indexPath: "/factory/samples/index.json"
+      },
+      {
+        id: "soundfonts",
+        label: "SoundFonts",
+        count: countNestedEntries(soundfonts.folders, "soundfonts"),
+        size: directorySize(join(factoryAssetRoot, "soundfonts")),
+        updatedAt: fileModifiedAt(soundfontIndex),
+        indexPath: "/factory/soundfonts/index.json"
+      },
+      {
+        id: "presets",
+        label: "Presets",
+        count: Array.isArray(presets) ? presets.length : 0,
+        size: directorySize(join(factoryAssetRoot, "presets")),
+        updatedAt: fileModifiedAt(presetIndex),
+        indexPath: "/factory/presets/index.json"
+      }
+    ],
+    currentJob: assetImportJob
+  }
+}
+
+const runAssetImportJob = (command, args) => {
+  if (assetImportJob?.status === "running") return assetImportJob
+  const job = {
+    id: randomUUID(),
+    command: [command, ...args].join(" "),
+    status: "running",
+    startedAt: new Date().toISOString(),
+    finishedAt: null,
+    exitCode: null,
+    output: "",
+    error: null
+  }
+  assetImportJob = job
+  const child = execFile(command, args, {
+    cwd: "/app",
+    env: {...process.env, FACTORY_ASSET_ROOT: factoryAssetRoot},
+    maxBuffer: 10 * 1024 * 1024
+  }, (error, stdout, stderr) => {
+    job.finishedAt = new Date().toISOString()
+    job.exitCode = typeof error?.code === "number" ? error.code : 0
+    job.status = error ? "failed" : "succeeded"
+    job.output = `${stdout}${stderr}`.slice(-20_000)
+    job.error = error ? error.message : null
+  })
+  child.stdout?.on("data", chunk => job.output = `${job.output}${chunk}`.slice(-20_000))
+  child.stderr?.on("data", chunk => job.output = `${job.output}${chunk}`.slice(-20_000))
+  return job
+}
 
 const roomFilePath = (docName) => {
   const safeName = Buffer.from(docName, "utf8").toString("base64url")
@@ -917,6 +1016,27 @@ const serveAdminApi = async (req, res) => {
       return
     }
     methodNotAllowed(res, ["GET", "PUT"])
+    return
+  }
+  if (segments.length === 1 && segments[0] === "assets") {
+    if (req.method === "GET") {
+      sendJson(res, 200, {assets: summarizeFactoryAssets()})
+      return
+    }
+    methodNotAllowed(res, ["GET"])
+    return
+  }
+  if (segments.length === 3 && segments[0] === "assets" && segments[1] === "demos" && segments[2] === "import") {
+    if (req.method === "POST") {
+      const parsed = tryParseJson(await readBody(req, 4096)) ?? {}
+      const args = ["run", "import-demos"]
+      if (parsed.replace === true) {
+        args.push("--", "--replace")
+      }
+      sendJson(res, 202, {job: runAssetImportJob("npm", args)})
+      return
+    }
+    methodNotAllowed(res, ["POST"])
     return
   }
   if (segments.length === 1 && segments[0] === "users") {
