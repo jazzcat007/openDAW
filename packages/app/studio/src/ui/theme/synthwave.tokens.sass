@@ -1,0 +1,41 @@
+// Metal-Duck Studio Synthwave Brand Tokens
+// Deep violet/ink studio surface, neon cyan primary, magenta secondary,
+// amber/yellow signal/transport, mint live, red-pink destructive
+
+$md-surface-ink: hsl(258, 42%, 7%)
+$md-surface-deep: hsl(258, 38%, 10%)
+$md-surface-panel: hsl(258, 30%, 12%)
+$md-surface-panel-bright: hsl(258, 28%, 15%)
+
+$md-primary-cyan: hsl(187, 100%, 63%)
+$md-secondary-magenta: hsl(309, 100%, 68%)
+$md-signal-amber: hsl(42, 100%, 65%)
+$md-live-mint: hsl(160, 100%, 60%)
+$md-destructive-pink: hsl(340, 100%, 65%)
+
+:root
+  // Brand surface
+  --md-surface-ink: #{$md-surface-ink}
+  --md-surface-deep: #{$md-surface-deep}
+  --md-surface-panel: #{$md-surface-panel}
+  --md-surface-panel-bright: #{$md-surface-panel-bright}
+  --md-surface-panel-dark: #{$md-surface-deep}
+
+  // Brand palette
+  --md-primary-cyan: #{$md-primary-cyan}
+  --md-secondary-magenta: #{$md-secondary-magenta}
+  --md-signal-amber: #{$md-signal-amber}
+  --md-live-mint: #{$md-live-mint}
+  --md-destructive-pink: #{$md-destructive-pink}
+
+  // Legacy mapping for existing CSS variables
+  --color-background: var(--md-surface-ink)
+  --color-panel-background: var(--md-surface-panel)
+  --color-panel-background-bright: var(--md-surface-panel-bright)
+  --color-panel-background-dark: var(--md-surface-deep)
+  --color-bright: var(--md-primary-cyan)
+  --color-blue: var(--md-primary-cyan)
+  --color-green: var(--md-live-mint)
+  --color-red: var(--md-destructive-pink)
+  --color-amber: var(--md-signal-amber)
+  --color-magenta: var(--md-secondary-magenta)

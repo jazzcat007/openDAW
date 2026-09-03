@@ -1,4 +1,4 @@
-import css from "./Footer.sass?inline"
+﻿import css from "./Footer.sass?inline"
 import {createElement, Frag, LocalLink, replaceChildren} from "@opendaw/lib-jsx"
 import {isDefined, isNotNull, Lifecycle, Nullable, Terminator, TimeSpan} from "@opendaw/lib-std"
 import {StudioService} from "@/service/StudioService"
@@ -50,7 +50,7 @@ export const Footer = ({lifecycle, service}: Construct) => {
                                         profileLifecycle.own(profile.subscribeMetaData(observer))
                                         observer(profile.meta)
                                     } else {
-                                        value.textContent = "⏏︎"
+                                        value.textContent = "âï¸Ž"
                                     }
                                 }))
                         }}/>
@@ -197,9 +197,13 @@ export const Footer = ({lifecycle, service}: Construct) => {
                      } satisfies FooterLabel
                  })}/>
             <div style={{flex: "1"}}/>
-            <div style={{color: Colors.cream.toString()}}>
+            <div style={{color: 'var(--md-primary-cyan)'}}>
                 <LocalLink href="/privacy">Privacy</LocalLink> · <LocalLink href="/imprint">Imprint</LocalLink>
+                <span style={{marginLeft: '0.75rem'}}>Metal-Duck Studio — write loud. mix neon.</span>
             </div>
         </footer>
     )
 }
+
+
+
