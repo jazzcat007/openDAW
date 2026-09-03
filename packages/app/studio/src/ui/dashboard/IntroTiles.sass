@@ -15,11 +15,21 @@ component
       row-gap: 1rem
 
   .tile
+    position: relative
     display: flex
     flex-direction: column
     row-gap: 0.3em
+    min-height: 7em
+    padding: 0.85em
+    border: 1px solid rgba(white, 0.08)
+    border-radius: 2px
+    background: rgba(white, 0.018)
     color: var(--color-dark)
     cursor: pointer
+
+    &:hover
+      border-color: var(--color-blue)
+      background: rgba(0, 238, 255, 0.045)
 
     &:hover .tile-title
       color: white
@@ -42,8 +52,10 @@ component
 
       > .tile-title
         color: var(--color-gray)
-        font-size: $fs-m
-        font-weight: 500
+        font-family: monospace
+        font-size: 10px
+        font-weight: 700
+        letter-spacing: 0.04em
 
     > .tile-text
       font-size: $fs-s

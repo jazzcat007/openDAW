@@ -4,6 +4,7 @@ import {createElement} from "@opendaw/lib-jsx"
 import {StudioService} from "@/service/StudioService.ts"
 import {Html} from "@opendaw/lib-dom"
 import {Resources} from "@/ui/dashboard/Resources"
+import {IntroTiles} from "@/ui/dashboard/IntroTiles"
 import {ActionButtons} from "@/ui/dashboard/ActionButtons"
 import {Backup} from "@/ui/dashboard/Backup"
 import {Sponsors} from "@/ui/dashboard/Sponsors"
@@ -11,7 +12,6 @@ import {Contributors} from "@/ui/dashboard/Contributors"
 import {SampleProviders} from "@/ui/dashboard/SampleProviders"
 import {HelpFeedback} from "@/ui/dashboard/HelpFeedback"
 import {Links} from "@/ui/dashboard/Links"
-import {BulletinBoard} from "@/ui/dashboard/BulletinBoard"
 
 const className = Html.adoptStyleSheet(css, "Dashboard")
 
@@ -26,15 +26,12 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
             <header className="hero">
                 <img className="brand-logo" src="/images/metal-duck-studio-logo-600.webp"
                      alt="Metal-Duck Studio"/>
-                <div className="brand-kicker">Private browser DAW · Community switchboard</div>
-                <div className="tagline">Make something. Find your people. Leave a little noise behind.</div>
+                <div className="brand-kicker">Private browser DAW · Est. after dark</div>
+                <div className="tagline">Write loud. Mix neon. Duck responsibly.</div>
             </header>
             <ActionButtons lifecycle={lifecycle} service={service}/>
         </div>
         <div className="main">
-            <div className="board-panel">
-                <BulletinBoard service={service}/>
-            </div>
             <div className="panel">
                 <Resources lifecycle={lifecycle} service={service}/>
             </div>
@@ -47,5 +44,6 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
                 <Contributors/>
             </div>
         </div>
+        <IntroTiles/>
     </div>
 )

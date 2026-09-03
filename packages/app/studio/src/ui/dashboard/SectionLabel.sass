@@ -1,7 +1,9 @@
 @use "tokens" as *
 
 component
-  font-size: $fs-m
+  font-family: monospace
+  font-size: 10px
+  font-weight: 700
   text-transform: uppercase
   letter-spacing: 0.06em
   color: var(--color-cream)
@@ -10,6 +12,10 @@ component
   margin: 0.5em 0
   display: inline-flex
   width: max-content
+
+  &::before
+    content: ">>"
+    color: var(--color-green)
 
   > svg
     width: 13px
