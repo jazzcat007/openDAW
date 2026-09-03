@@ -6,8 +6,11 @@ const CsrfHeader = {"X-OpenDAW-Csrf": "1"}
 
 // Server-backed Projects API (server is the source of truth; OPFS is cache/recovery only).
 export namespace ServerProjects {
-    export type ListEntry = { uuid: UUID.Bytes, meta: ProjectMeta }
+    export type ListEntry = { uuid: UUID.Bytes, meta: ProjectMeta, shared: boolean }
     export type List = ReadonlyArray<ListEntry>
+    export type MemberRole = "owner" | "editor" | "viewer"
+    export type Member = { userId: string, username: string, role: MemberRole, disabled: boolean }
+    export type ShareCandidate = { id: string, username: string }
 
     let availability: Option<boolean> = Option.None
 
@@ -23,8 +26,8 @@ export namespace ServerProjects {
     export const listProjects = async (): Promise<List> => {
         const response = await fetch("/api/projects")
         if (!response.ok) {return panic(`Failed to list projects (${response.status})`)}
-        const {projects} = await response.json() as { projects: Array<{ uuid: string, meta: JSONValue }> }
-        return projects.map(({uuid, meta}) => ({uuid: UUID.parse(uuid), meta: ProjectMeta.fromJSON(meta)}))
+        const {projects} = await response.json() as { projects: Array<{ uuid: string, meta: JSONValue, shared?: boolean }> }
+        return projects.map(({uuid, meta, shared}) => ({uuid: UUID.parse(uuid), meta: ProjectMeta.fromJSON(meta), shared: shared === true}))
     }
 
     export const loadProject = async (uuid: UUID.Bytes): Promise<ArrayBuffer> => {
@@ -78,6 +81,26 @@ export namespace ServerProjects {
     export const deleteProject = async (uuid: UUID.Bytes): Promise<void> => {
         const response = await fetch(`/api/projects/${UUID.toString(uuid)}`, {method: "DELETE", headers: CsrfHeader})
         if (!response.ok) {return panic(`Failed to delete project (${response.status})`)}
+    }
+
+    export const getMembers = async (uuid: UUID.Bytes): Promise<{
+        members: ReadonlyArray<Member>, users: ReadonlyArray<ShareCandidate>
+    }> => {
+        const response = await fetch(`/api/projects/${UUID.toString(uuid)}/members`)
+        if (!response.ok) {return panic(`Failed to load collaborators (${response.status})`)}
+        return response.json()
+    }
+
+    export const updateMembers = async (uuid: UUID.Bytes,
+                                        members: ReadonlyArray<{ userId: string, role: "editor" | "viewer" }>): Promise<ReadonlyArray<Member>> => {
+        const response = await fetch(`/api/projects/${UUID.toString(uuid)}/members`, {
+            method: "PUT",
+            headers: {"Content-Type": "application/json", ...CsrfHeader},
+            body: JSON.stringify({members})
+        })
+        if (!response.ok) {return panic(`Failed to update collaborators (${response.status})`)}
+        const result = await response.json() as { members: ReadonlyArray<Member> }
+        return result.members
     }
 
     export const exportUrl = (uuid: UUID.Bytes): string => `/api/projects/${UUID.toString(uuid)}/export`

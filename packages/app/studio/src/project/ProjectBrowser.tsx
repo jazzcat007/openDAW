@@ -30,6 +30,7 @@ import {
 import {SearchInput} from "@/ui/components/SearchInput"
 import {ThreeDots} from "@/ui/spinner/ThreeDots"
 import {installScrollbars} from "@/ui/components/Scrollbars"
+import {showProjectSharingDialog} from "@/project/ProjectSharingDialog"
 
 const className = Html.adoptStyleSheet(css, "ProjectBrowser")
 
@@ -73,7 +74,9 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                                        ? empty
                                        : projects
                                        .toSorted((a, b) => -StringComparator(a.meta.modified, b.meta.modified))
-                                       .map(({uuid, meta}) => {
+                                       .map(project => {
+                                           const {uuid, meta} = project
+                                           const shared = "shared" in project && project.shared === true
                                            const icon: DomElement = <Icon symbol={IconSymbol.Delete}
                                                                           className="delete-icon"/>
                                            const timeString = TimeSpan.millis(new Date(meta.modified).getTime() - now).toUnitString()
@@ -107,8 +110,20 @@ export const ProjectBrowser = ({service, lifecycle, select, empty}: Construct) =
                                                                             console.warn(error)
                                                                             RuntimeNotifier.notify({message: "Download failed.", icon: "Warning"})
                                                                         }
-                                                                    }))))}>
-                                                       <div className="name">{meta.name}</div>
+                                                                    })),
+                                                                MenuItem.default({label: "Share..."})
+                                                                    .setTriggerProcedure(async () => {
+                                                                        const {status, error} = await Promises.tryCatch(
+                                                                            showProjectSharingDialog(uuid, meta.name))
+                                                                        if (status === "rejected" && !Errors.isAbort(error)) {
+                                                                            console.warn(error)
+                                                                            RuntimeNotifier.notify({message: "Sharing is available to the project owner.", icon: "Warning"})
+                                                                        }
+                                                                        if (status === "resolved") {
+                                                                            RuntimeSignal.dispatch(ProjectSignals.StorageUpdated)
+                                                                        }
+                                                                    })))}>
+                                                       <div className="name">{meta.name}{shared && <span className="shared">Shared</span>}</div>
                                                        <div className="time">{timeString}</div>
                                                    </div>
                                                    {icon}

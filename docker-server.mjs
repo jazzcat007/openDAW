@@ -540,14 +540,55 @@ const projectTrashFile = join(projectsRoot, "trash.json")
 const readProjectTrash = () => readJson(projectTrashFile, [])
 const writeProjectTrash = (ids) => writeFileSync(projectTrashFile, `${JSON.stringify(ids, null, 2)}\n`)
 
-const listProjectSummaries = () => {
+const projectAccess = (meta, user) => {
+  if (user.role === "admin") return "admin"
+  if (typeof meta?.ownerUserId !== "string") return null
+  if (meta.ownerUserId === user.id) return "owner"
+  const member = Array.isArray(meta.members)
+    ? meta.members.find(candidate => candidate?.userId === user.id)
+    : undefined
+  return member?.role === "editor" || member?.role === "viewer" ? member.role : null
+}
+
+const canReadProject = (meta, user) => projectAccess(meta, user) !== null
+const canWriteProject = (meta, user) => {
+  const access = projectAccess(meta, user)
+  return access === "admin" || access === "owner" || access === "editor"
+}
+const canManageProject = (meta, user) => {
+  const access = projectAccess(meta, user)
+  return access === "admin" || access === "owner"
+}
+
+const projectMembers = (meta) => Array.isArray(meta.members)
+  ? meta.members.filter(member => typeof member?.userId === "string" &&
+      (member.role === "owner" || member.role === "editor" || member.role === "viewer"))
+  : []
+
+const serializeProjectMembers = (meta) => projectMembers(meta).map(member => {
+  const user = users.find(candidate => candidate.id === member.userId)
+  return {userId: member.userId, role: member.role, username: user?.username ?? "Unknown user", disabled: user?.disabledAt !== null}
+})
+
+// Project metadata is edited by the client on every save. Access control is server-owned,
+// so a stale client copy (or a crafted request) cannot change ownership or memberships.
+const withoutProjectAccessFields = (meta) => {
+  const copy = {...meta}
+  delete copy.ownerUserId
+  delete copy.createdBy
+  delete copy.members
+  return copy
+}
+
+const listProjectSummaries = (user) => {
   if (!existsSync(projectsRoot)) return []
   const trash = readProjectTrash()
   return readdirSync(projectsRoot, {withFileTypes: true})
     .filter(entry => entry.isDirectory() && PROJECT_UUID_PATTERN.test(entry.name) && !trash.includes(entry.name))
     .map(entry => {
       const meta = readJson(join(projectsRoot, entry.name, "meta.json"), null)
-      return meta === null ? null : {uuid: entry.name, meta}
+      return meta === null || !canReadProject(meta, user)
+        ? null : {uuid: entry.name, meta, shared: projectMembers(meta).some(member => member.role !== "owner")}
     })
     .filter(entry => entry !== null)
 }
@@ -566,20 +607,27 @@ const snapshotProjectRevision = (uuid) => {
 }
 
 const serveProjectsApi = async (req, res) => {
+  const currentUser = getCurrentUser(req)
   const url = new URL(req.url, "https://localhost")
   const segments = url.pathname.replace(/^\/api\/projects\/?/, "").split("/").filter(Boolean)
   if (segments.length === 0) {
     if (req.method === "GET") {
-      sendJson(res, 200, {projects: listProjectSummaries()})
+      sendJson(res, 200, {projects: listProjectSummaries(currentUser)})
       return
     }
     if (req.method === "POST") {
       const body = await readBody(req)
       const parsed = tryParseJson(body)
-      const requestedMeta = parsed && typeof parsed === "object" && parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {}
+      const requestedMeta = parsed && typeof parsed === "object" && parsed.meta && typeof parsed.meta === "object"
+        ? withoutProjectAccessFields(parsed.meta) : {}
       const uuid = randomUUID()
       const now = new Date().toISOString()
-      const meta = {name: "Untitled", artist: "", description: "", tags: [], created: now, modified: now, ...requestedMeta}
+      const meta = {
+        name: "Untitled", artist: "", description: "", tags: [], created: now, modified: now, ...requestedMeta,
+        ownerUserId: currentUser.id,
+        createdBy: currentUser.username,
+        members: [{userId: currentUser.id, role: "owner"}]
+      }
       mkdirSync(projectFolder(uuid), {recursive: true})
       writeFileSync(join(projectFolder(uuid), "meta.json"), `${JSON.stringify(meta, null, 2)}\n`)
       sendJson(res, 200, {uuid, meta})
@@ -594,14 +642,26 @@ const serveProjectsApi = async (req, res) => {
     return
   }
   const folder = projectFolder(uuid)
+  const metaPath = join(folder, "meta.json")
+  const existingMeta = readJson(metaPath, null)
+  // Existing projects from before per-project privacy have no owner. Keep them
+  // admin-only until an administrator explicitly claims or migrates them.
+  if (existingMeta === null || !canReadProject(existingMeta, currentUser)) {
+    sendJson(res, 404, {error: "Not found"})
+    return
+  }
+  if ((req.method === "DELETE" || (resource === "restore" && req.method === "POST")) &&
+      !canManageProject(existingMeta, currentUser)) {
+    sendJson(res, 403, {error: "Project owner permission required"})
+    return
+  }
+  if (req.method !== "GET" && req.method !== "HEAD" && !canWriteProject(existingMeta, currentUser)) {
+    sendJson(res, 403, {error: "Project edit permission required"})
+    return
+  }
   if (segments.length === 1) {
     if (req.method === "GET") {
-      const meta = readJson(join(folder, "meta.json"), null)
-      if (meta === null) {
-        sendJson(res, 404, {error: "Not found"})
-        return
-      }
-      sendJson(res, 200, {uuid, meta})
+      sendJson(res, 200, {uuid, meta: existingMeta})
       return
     }
     if (req.method === "DELETE") {
@@ -638,7 +698,6 @@ const serveProjectsApi = async (req, res) => {
     }
     if (req.method === "PUT") {
       const body = await readBody(req)
-      mkdirSync(folder, {recursive: true})
       snapshotProjectRevision(uuid)
       writeFileSync(join(folder, "project.od"), body)
       sendJson(res, 200, {ok: true})
@@ -659,7 +718,6 @@ const serveProjectsApi = async (req, res) => {
     }
     if (req.method === "PUT") {
       const body = await readBody(req)
-      mkdirSync(folder, {recursive: true})
       writeFileSync(join(folder, "image.bin"), body)
       sendJson(res, 200, {ok: true})
       return
@@ -675,28 +733,71 @@ const serveProjectsApi = async (req, res) => {
         sendJson(res, 400, {error: "Invalid JSON"})
         return
       }
-      mkdirSync(folder, {recursive: true})
-      writeFileSync(join(folder, "meta.json"), `${JSON.stringify(parsed, null, 2)}\n`)
+      const meta = {
+        ...existingMeta,
+        ...withoutProjectAccessFields(parsed),
+        ownerUserId: existingMeta.ownerUserId,
+        createdBy: existingMeta.createdBy,
+        members: existingMeta.members
+      }
+      writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`)
       sendJson(res, 200, {ok: true})
       return
     }
     methodNotAllowed(res, ["PUT"])
     return
   }
-  if (segments.length === 2 && resource === "duplicate") {
-    if (req.method === "POST") {
-      const meta = readJson(join(folder, "meta.json"), null)
-      if (meta === null) {
-        sendJson(res, 404, {error: "Not found"})
+  if (segments.length === 2 && resource === "members") {
+    if (!canManageProject(existingMeta, currentUser)) {
+      sendJson(res, 403, {error: "Project owner permission required"})
+      return
+    }
+    if (req.method === "GET") {
+      sendJson(res, 200, {
+        members: serializeProjectMembers(existingMeta),
+        users: users.filter(user => user.disabledAt === null).map(user => ({id: user.id, username: user.username}))
+      })
+      return
+    }
+    if (req.method === "PUT") {
+      const parsed = tryParseJson(await readBody(req, 4096))
+      if (!Array.isArray(parsed?.members)) {
+        sendJson(res, 400, {error: "Expected a members array"})
         return
       }
+      const ownerId = existingMeta.ownerUserId
+      const members = [{userId: ownerId, role: "owner"}]
+      const included = new Set([ownerId])
+      for (const candidate of parsed.members) {
+        if (typeof candidate?.userId !== "string" || included.has(candidate.userId)) continue
+        if (candidate.role !== "editor" && candidate.role !== "viewer") continue
+        const user = users.find(entry => entry.id === candidate.userId && entry.disabledAt === null)
+        if (user === undefined) continue
+        included.add(user.id)
+        members.push({userId: user.id, role: candidate.role})
+      }
+      const meta = {...existingMeta, members}
+      writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`)
+      sendJson(res, 200, {members: serializeProjectMembers(meta)})
+      return
+    }
+    methodNotAllowed(res, ["GET", "PUT"])
+    return
+  }
+  if (segments.length === 2 && resource === "duplicate") {
+    if (req.method === "POST") {
       const newUuid = randomUUID()
       const newFolder = projectFolder(newUuid)
       mkdirSync(newFolder, {recursive: true})
       copyFileIfExists(join(folder, "project.od"), join(newFolder, "project.od"))
       copyFileIfExists(join(folder, "image.bin"), join(newFolder, "image.bin"))
       const now = new Date().toISOString()
-      const duplicatedMeta = {...meta, created: now, modified: now}
+      const duplicatedMeta = {
+        ...withoutProjectAccessFields(existingMeta), created: now, modified: now,
+        ownerUserId: currentUser.id,
+        createdBy: currentUser.username,
+        members: [{userId: currentUser.id, role: "owner"}]
+      }
       writeFileSync(join(newFolder, "meta.json"), `${JSON.stringify(duplicatedMeta, null, 2)}\n`)
       sendJson(res, 200, {uuid: newUuid, meta: duplicatedMeta})
       return
@@ -720,8 +821,7 @@ const serveProjectsApi = async (req, res) => {
         sendJson(res, 404, {error: "Not found"})
         return
       }
-      const meta = readJson(join(folder, "meta.json"), {name: uuid})
-      const fileName = String(meta.name ?? uuid).replace(/["/\\]/g, "_")
+      const fileName = String(existingMeta.name ?? uuid).replace(/["/\\]/g, "_")
       sendBinary(res, 200, readFileSync(filePath), {"Content-Disposition": `attachment; filename="${fileName}.od"`})
       return
     }

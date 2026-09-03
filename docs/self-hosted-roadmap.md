@@ -176,35 +176,35 @@ deliberately open it up to specific collaborators — matching the "known collab
 anonymous participants" posture in `docs/philosophy.md`, applied at the project level, not just
 the instance level.
 
-Current state — this is a real gap, not a cosmetic one:
+Current state:
 
-- `defaultSettings.projectDefaults.visibility` in `docker-server.mjs:61` already says `"private"`,
-  but nothing enforces it. It's an unused placeholder.
-- Project `meta.json` carries no owner or membership field. `POST /api/projects` (`docker-server.mjs:476-486`)
-  never stamps who created a project.
-- `listProjectSummaries()` (`docker-server.mjs:443-453`) returns every project on the server, and
-  every project-scoped endpoint (`GET/PUT/DELETE /api/projects/:uuid/...`) is reachable by any
-  authenticated user regardless of who made it. Today, "private" means "behind the instance's
-  login," not "private to me" — any invited friend can already list, open, and overwrite anyone
-  else's project.
-- Live Rooms already have a narrower version of ownership (`ownerUserId` on room-links,
-  `docker-server.mjs:1082-1091`) that Projects don't have yet — that's the pattern to reuse.
+- New project metadata is stamped with `ownerUserId`, `createdBy`, and an owner membership.
+- Every project API route enforces access server-side; admins retain a support/moderation override.
+- Owners can grant active instance users editor or viewer access from the Project browser. Standard
+  metadata saves cannot overwrite project ownership or memberships.
+- Existing ownerless projects are deliberately admin-only until migrated, rather than becoming visible
+  to every signed-in person.
+- Live Rooms are not yet restricted by linked-project membership.
+
+Implementation status: phases 1–3 are complete. New projects are private to their owner by default;
+owners can share a project with active instance users as editors or viewers from the Project browser.
+Legacy ownerless projects remain admin-only until deliberately migrated.
 
 Proposed phases:
 
-1. Stamp ownership at creation.
+1. Stamp ownership at creation. **(done)**
    - Add `ownerUserId` (and `createdBy` display name) to `meta.json` when `POST /api/projects` runs,
      the same way room-links already stamp `ownerUserId`.
    - Backfill existing projects with no owner as owned by whichever admin runs the migration, or
      leave them unowned/admin-only until claimed.
 
-2. Add a membership list and enforce it server-side.
+2. Add a membership list and enforce it server-side. **(done)**
    - `meta.json` gains `members: [{userId, role}]`, defaulting to just the owner.
    - `listProjectSummaries()` and every per-project route filter/authorize by membership instead of
      trusting any logged-in user; admins bypass for support/moderation.
    - This is the piece that makes `projectDefaults.visibility: "private"` actually true.
 
-3. Add a Share action.
+3. Add a Share action. **(done: Project browser `Share...` action; editor/viewer roles and shared badge)**
    - Owner picks from the existing user roster (small, known set — same list Admin already manages,
      not an open invite) to add someone as a collaborator.
    - This is the "open up for collaboration" moment: a project stays single-owner and invisible to
