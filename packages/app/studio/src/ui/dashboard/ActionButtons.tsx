@@ -19,19 +19,19 @@ export const ActionButtons = ({service}: Construct) => (
     <div className={className}>
         <button className="action" title="Empty timeline, start from a clean slate."
                 onclick={() => service.newProject()}>
-            <Icon symbol={IconSymbol.New}/><span>New Project</span>
+            <Icon symbol={IconSymbol.New}/><span>Drop a Fresh Tape</span>
         </button>
         <button className="action" title="For the times everyone is free: jam together in real time and share a link."
                 onclick={() => connectRoom(service)}>
-            <Icon symbol={IconSymbol.Connected}/><span>New Live Room</span>
+            <Icon symbol={IconSymbol.Connected}/><span>Rally the Flock</span>
         </button>
         <button className="action" title="Open a project bundle a collaborator sent you and add your next pass."
                 onclick={() => service.importBundle()}>
-            <Icon symbol={IconSymbol.Folder}/><span>Open Bundle</span>
+            <Icon symbol={IconSymbol.Folder}/><span>Catch a Handoff</span>
         </button>
         <button className="action" title="Split a music file into drums, bass, vocals and other."
                 onclick={() => NeuralDemux.explain(service).catch(EmptyExec)}>
-            <Icon symbol={IconSymbol.Robot}/><span>Neural Demux</span>
+            <Icon symbol={IconSymbol.Robot}/><span>Shake Down a Song</span>
         </button>
     </div>
 )

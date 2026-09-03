@@ -12,6 +12,7 @@ import {Contributors} from "@/ui/dashboard/Contributors"
 import {SampleProviders} from "@/ui/dashboard/SampleProviders"
 import {HelpFeedback} from "@/ui/dashboard/HelpFeedback"
 import {Links} from "@/ui/dashboard/Links"
+import {DashboardSignal} from "@/ui/dashboard/DashboardSignal"
 
 const className = Html.adoptStyleSheet(css, "Dashboard")
 
@@ -27,14 +28,15 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
                 <img className="brand-logo" src="/images/metal-duck-studio-logo-600.webp"
                      alt="Metal-Duck Studio"/>
                 <div className="brand-kicker">Private browser DAW · chipmunk punk / disco duck division</div>
-                <div className="tagline">Start a racket whenever. Pass the tape. Pick up where the flock left off.</div>
+                <div className="tagline">Mixtape muscle memory, browser magic. Start a racket whenever.</div>
             </header>
             <div className="welcome-note">
-                <strong>Make music together without getting the whole band out of bed.</strong>
+                <strong>Make music together without getting the whole Gen X band out of bed.</strong>
                 <span>Build a banger in your browser, stash it in the private vault, then pass a Project Bundle to
                     the next duck. They add their weird little part whenever the moon is right — between the school
                     run, the back stretches, and an extremely serious conversation about compact SUVs.</span>
             </div>
+            <DashboardSignal lifecycle={lifecycle}/>
             <ActionButtons lifecycle={lifecycle} service={service}/>
         </div>
         <div className="main">
