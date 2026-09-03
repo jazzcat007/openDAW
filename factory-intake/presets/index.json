@@ -1,0 +1,78 @@
+[
+  {
+    "uuid": "fff52be8-fac4-4918-b814-ec5da89372e1",
+    "name": "Drum Bus",
+    "category": "audio-effect-chain",
+    "description": "Compressor into a bit of crunch for a drum bus.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "907ca0cb-92de-4909-bc73-47e9e653c94e",
+    "name": "Vocal Chain",
+    "category": "audio-effect-chain",
+    "description": "Gate, EQ and compression for a lead vocal. No reverb: a true reverb send is bus/mixer routing, which a single effect-chain preset can't express.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "6a131d62-1bb1-4144-ba25-002f19e227ef",
+    "name": "Mastering Chain",
+    "category": "audio-effect-chain",
+    "description": "Broad EQ into a brickwall limiter for a master bus.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "1bf0cc85-0d1b-4fcc-9f52-3144ee543c80",
+    "name": "Lo-Fi Sampler",
+    "category": "audio-unit",
+    "instrument": "Nano",
+    "description": "A crushed, low-pass-filtered piano one-shot for lo-fi chops.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "356bb1cb-c0d8-4c06-93a5-0ec2f7519f92",
+    "name": "Ambient Send",
+    "category": "audio-effect-chain",
+    "description": "Dense reverb into delay for ambient washes.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "8d232104-021b-4dc7-8fb9-a179df830636",
+    "name": "Guitar Cab Convolver",
+    "category": "audio-effect-chain",
+    "description": "Convolver pre-wired to a Modern UK cabinet impulse response.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "68158520-2330-49b1-85a3-0742381427c2",
+    "name": "Clean Piano",
+    "category": "instrument",
+    "device": "Soundfont",
+    "description": "GeneralUser GS's Grand Piano patch (bank 0, preset index 0).",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "a7a3d828-0cc2-4edb-b5a5-92534f343134",
+    "name": "Synth Bass",
+    "category": "instrument",
+    "device": "Vaporisateur",
+    "description": "Monophonic saw plus sub-square bass with a short, punchy envelope.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  },
+  {
+    "uuid": "d010f663-eb74-4640-b2d5-710a8a84eeb8",
+    "name": "Orchestral Sketch (Harp)",
+    "category": "instrument",
+    "device": "Soundfont",
+    "description": "Scoped down from a full orchestral sketch to a single instrument: FreePats GM Orchestral's Orchestral Harp patch (preset index 20), the most genuinely orchestral melodic voice in that soundfont.",
+    "created": 1788403736708,
+    "modified": 1788403736708
+  }
+]
