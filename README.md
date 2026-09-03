@@ -159,6 +159,8 @@ evolves.
 #### 2026/Q3
 
 - [ ] Testing & QA
+- [ ] Reactive, mobile-ready site
+- [ ] Plugin support for Reaper, Bitwig, and other DAWs
 - [ ] [Launch 1.0](https://opendaw.org/release26/)
 
 For more issues and feature requests, visit [github.com/andremichelle/opendaw/issues/](https://github.com/andremichelle/opendaw/issues/)
