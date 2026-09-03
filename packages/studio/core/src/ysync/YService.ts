@@ -14,7 +14,13 @@ export namespace YService {
     const USE_LOCAL_SERVER = import.meta.env.VITE_VJS_USE_LOCAL_SERVER === "true"
     const LOCAL_SERVER_URL = import.meta.env.VITE_VJS_LOCAL_SERVER_URL || "wss://localhost:1234"
     const ONLINE_SERVER_URL = import.meta.env.VITE_VJS_ONLINE_SERVER_URL || "wss://live.opendaw.studio"
-    const serverUrl = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+    const resolveLiveServerUrl = (): string => {
+        const configured = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+        if (configured !== "same-origin") {return configured}
+        const origin = globalThis.location?.origin
+        if (origin === undefined) {return "wss://localhost:1234"}
+        return `${origin.replace(/^http/, "ws")}/live`
+    }
 
     export type RoomResult = { project: Project, provider: WebsocketProvider }
 
@@ -23,7 +29,7 @@ export namespace YService {
                                           roomName: string): Promise<RoomResult> => {
         if (roomName === "signaling") {return panic("Invalid room name: signaling")}
         const doc = new Y.Doc()
-        const provider: WebsocketProvider = new WebsocketProvider(serverUrl, roomName, doc)
+        const provider: WebsocketProvider = new WebsocketProvider(resolveLiveServerUrl(), roomName, doc)
         console.debug("clientID:", doc.clientID)
         console.debug("Provider url:", provider.url)
         if (!provider.synced) {

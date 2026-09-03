@@ -13,7 +13,13 @@ import {Events} from "@opendaw/lib-dom"
 const USE_LOCAL_SERVER = import.meta.env.VITE_VJS_USE_LOCAL_SERVER === "true"
 const LOCAL_SERVER_URL = import.meta.env.VITE_VJS_LOCAL_SERVER_URL || "wss://localhost:1234"
 const ONLINE_SERVER_URL = import.meta.env.VITE_VJS_ONLINE_SERVER_URL || "wss://live.opendaw.studio"
-const LIVE_SERVER_URL = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+const resolveLiveServerUrl = (): string => {
+    const configured = USE_LOCAL_SERVER ? LOCAL_SERVER_URL : ONLINE_SERVER_URL
+    if (configured !== "same-origin") {return configured}
+    const origin = globalThis.location?.origin
+    if (origin === undefined) {return "wss://localhost:1234"}
+    return `${origin.replace(/^http/, "ws")}/live`
+}
 const ROOM_SNAPSHOT_INTERVAL_MS = TimeSpan.minutes(2).millis()
 
 const classifyConnectError = (error: unknown): RoomResultStatus => {
@@ -74,7 +80,7 @@ export const connectRoom = async (service: StudioService, prefillRoomName?: Opti
                     .flatMap(profile => profile.coverId === UUID.toString(uuid) ? profile.cover : Option.None)
                     .unwrapOrElse(() => panic(`No cover for ${UUID.toString(uuid)}`))
             }
-        }, roomName, LIVE_SERVER_URL)
+        }, roomName, resolveLiveServerUrl())
         project.own(p2pSession)
         const terminator = new Terminator()
         project.own(terminator)
