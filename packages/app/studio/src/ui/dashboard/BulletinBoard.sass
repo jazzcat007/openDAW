@@ -214,6 +214,21 @@ component
       height: 0.9rem
       color: var(--color-gray)
 
+  .board-footer
+    display: flex
+    justify-content: space-between
+    gap: 0.75rem
+    padding: 0.45rem 1rem
+    border-top: 1px solid rgba(white, 0.09)
+    color: var(--color-shadow)
+    background: rgba(0, 0, 0, 0.12)
+    font-family: monospace
+    font-size: 8px
+    letter-spacing: 0.05em
+
+    span:last-child
+      color: var(--color-green)
+
   .compact-workspace &
     > .board-head
       align-items: flex-start
@@ -233,3 +248,8 @@ component
 
     .board-side
       padding-bottom: 0
+
+    .board-footer
+      align-items: flex-start
+      flex-direction: column
+      gap: 0.2rem
