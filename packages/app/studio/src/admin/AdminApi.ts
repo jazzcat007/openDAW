@@ -14,6 +14,30 @@ export namespace AdminApi {
     }
     export type Settings = { siteName: string } & Record<string, unknown>
     export type Me = { authenticated: boolean, setupRequired?: boolean, user?: { id: string, username: string, role: Role } }
+    export type AssetCatalog = {
+        id: "demos" | "samples" | "soundfonts" | "presets"
+        label: string
+        count: number
+        size: number
+        updatedAt: string | null
+        indexPath: string
+    }
+    export type AssetImportJob = {
+        id: string
+        command: string
+        status: "running" | "succeeded" | "failed"
+        startedAt: string
+        finishedAt: string | null
+        exitCode: number | null
+        output: string
+        error: string | null
+    }
+    export type AssetsSummary = {
+        root: string
+        offlineOnly: boolean
+        catalogs: ReadonlyArray<AssetCatalog>
+        currentJob: AssetImportJob | null
+    }
 
     const parseError = async (response: Response, fallback: string): Promise<string> =>
         (await response.json().catch(() => null))?.error ?? fallback
@@ -51,6 +75,24 @@ export namespace AdminApi {
         if (!response.ok) {return panic(await parseError(response, `Failed to update settings (${response.status})`))}
         const {settings} = await response.json()
         return settings
+    }
+
+    export const fetchAssets = async (): Promise<AssetsSummary> => {
+        const response = await fetch("/api/admin/assets")
+        if (!response.ok) {return panic(await parseError(response, `Failed to load assets (${response.status})`))}
+        const {assets} = await response.json()
+        return assets
+    }
+
+    export const importDemos = async (replace: boolean = false): Promise<AssetImportJob> => {
+        const response = await fetch("/api/admin/assets/demos/import", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", ...CsrfHeader},
+            body: JSON.stringify({replace})
+        })
+        if (!response.ok) {return panic(await parseError(response, `Failed to start demo import (${response.status})`))}
+        const {job} = await response.json()
+        return job
     }
 
     export const listUsers = async (): Promise<ReadonlyArray<User>> => {

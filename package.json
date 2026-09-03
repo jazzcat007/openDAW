@@ -11,6 +11,7 @@
     "clean": "bash ./scripts/clean.sh",
     "build": "turbo build --output-logs=full",
     "build-wasm": "npm run build:wasm -w @opendaw/studio-core-wasm",
+    "import-demos": "node scripts/import-demos.mjs",
     "import-samples": "node scripts/import-samples.mjs",
     "import-soundfonts": "node scripts/import-soundfonts.mjs",
     "import-demos": "node scripts/import-demos.mjs",

@@ -1,6 +1,6 @@
 import css from "./AdminPage.sass?inline"
 import {createElement, PageContext, PageFactory, replaceChildren} from "@opendaw/lib-jsx"
-import {Lifecycle} from "@opendaw/lib-std"
+import {Bytes, Lifecycle, Terminable} from "@opendaw/lib-std"
 import {StudioService} from "@/service/StudioService.ts"
 import {BackButton} from "@/ui/pages/BackButton"
 import {Html} from "@opendaw/lib-dom"
@@ -184,6 +184,114 @@ const SettingsSection = (initialSettings: AdminApi.Settings): HTMLElement => {
     )
 }
 
+const AssetsSection = (lifecycle: Lifecycle, initialAssets: AdminApi.AssetsSummary): HTMLElement => {
+    const errorLine: HTMLElement = <div className="error"/>
+    const summaryLine: HTMLElement = <p className="asset-summary"/>
+    const body: HTMLTableSectionElement = <tbody/>
+    const jobOutput: HTMLPreElement = <pre className="job-output"/>
+    const showError = (reason: unknown) =>
+        errorLine.textContent = reason instanceof Error ? reason.message : String(reason)
+
+    let currentAssets = initialAssets
+
+    const renderJob = (job: AdminApi.AssetImportJob | null) => {
+        if (job === null) {
+            jobOutput.textContent = "No asset import job has run since this server started."
+            return
+        }
+        jobOutput.textContent = [
+            `${job.status.toUpperCase()} ${job.command}`,
+            `Started: ${formatDate(job.startedAt)}`,
+            `Finished: ${formatDate(job.finishedAt)}`,
+            job.error === null ? "" : `Error: ${job.error}`,
+            "",
+            job.output.trim()
+        ].filter(line => line.length > 0).join("\n")
+    }
+
+    const renderRows = (assets: AdminApi.AssetsSummary) => {
+        currentAssets = assets
+        summaryLine.textContent = `Factory root: ${assets.root} · offline-only: ${assets.offlineOnly ? "on" : "off"}`
+        replaceChildren(body, ...assets.catalogs.map(catalog => (
+            <tr>
+                <td>{catalog.label}</td>
+                <td>{catalog.count.toLocaleString()}</td>
+                <td>{Bytes.toString(catalog.size)}</td>
+                <td>{formatDate(catalog.updatedAt)}</td>
+                <td><a href={catalog.indexPath} target="_blank">index</a></td>
+            </tr>
+        )))
+        renderJob(assets.currentJob)
+    }
+
+    const reload = async () => {
+        errorLine.textContent = ""
+        try {
+            renderRows(await AdminApi.fetchAssets())
+        } catch (reason) {
+            showError(reason)
+        }
+    }
+
+    const importButton: HTMLButtonElement = (
+        <button type="button" onclick={async () => {
+            errorLine.textContent = ""
+            try {
+                await AdminApi.importDemos(false)
+                await reload()
+            } catch (reason) {
+                showError(reason)
+            }
+        }}>REFRESH DEMOS</button>
+    ) as HTMLButtonElement
+    const replaceButton: HTMLButtonElement = (
+        <button type="button" onclick={async () => {
+            if (!confirm("Replace all local demo metadata and bundles from upstream openDAW?")) {return}
+            errorLine.textContent = ""
+            try {
+                await AdminApi.importDemos(true)
+                await reload()
+            } catch (reason) {
+                showError(reason)
+            }
+        }}>REPLACE DEMOS</button>
+    ) as HTMLButtonElement
+    const refreshButton: HTMLButtonElement = (
+        <button type="button" onclick={reload}>REFRESH STATUS</button>
+    ) as HTMLButtonElement
+
+    renderRows(initialAssets)
+    const interval = setInterval(() => {
+        if (currentAssets.currentJob?.status === "running") {
+            void reload()
+        }
+    }, 2_500)
+    lifecycle.own(Terminable.create(() => clearInterval(interval)))
+
+    return (
+        <section className="assets">
+            <h2>Assets</h2>
+            {summaryLine}
+            <table>
+                <thead>
+                <tr>
+                    <th>Catalog</th>
+                    <th>Items</th>
+                    <th>Size</th>
+                    <th>Updated</th>
+                    <th/>
+                </tr>
+                </thead>
+                {body}
+            </table>
+            <div className="asset-actions">{refreshButton}{importButton}{replaceButton}</div>
+            <h3>Latest Import Job</h3>
+            {jobOutput}
+            {errorLine}
+        </section>
+    )
+}
+
 const InvitesSection = (initialInvites: ReadonlyArray<AdminApi.Invite>): HTMLElement => {
     const errorLine: HTMLElement = <div className="error"/>
     const body: HTMLTableSectionElement = <tbody/>
@@ -284,6 +392,7 @@ export const AdminPage: PageFactory<StudioService> = async ({service, lifecycle}
     }
     const {settings, users} = await AdminApi.fetchSettings()
     const invites = await AdminApi.listInvites()
+    const assets = await AdminApi.fetchAssets()
     return (
         <div className={className}>
             <BackButton service={service}/>
@@ -292,6 +401,7 @@ export const AdminPage: PageFactory<StudioService> = async ({service, lifecycle}
             <div className="sections">
                 {UsersSection(lifecycle, me.user.id, users)}
                 {InvitesSection(invites)}
+                {AssetsSection(lifecycle, assets)}
                 {SettingsSection(settings)}
             </div>
         </div>
