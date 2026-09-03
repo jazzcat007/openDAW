@@ -97,7 +97,7 @@ export class ErrorHandler {
         this.#chunkLoadDialogOpen = true
         Dialogs.info({
             headline: "Couldn't Load Component",
-            message: "A part of openDAW failed to load, usually a temporary network issue. Your project is unaffected — please try again."
+            message: "A part of Metal-Duck Studio failed to load, usually because of a temporary network issue. Your project is unaffected — please try again."
         }).finally(() => {this.#chunkLoadDialogOpen = false})
     }
 
@@ -109,7 +109,7 @@ export class ErrorHandler {
         this.#browserInternalNotified = true
         Dialogs.info({
             headline: "Warning",
-            message: "Your browser or one of its extensions blocked an operation openDAW relies on. Consider disabling extensions or strict privacy settings for a more stable experience."
+            message: "Your browser or one of its extensions blocked an operation the studio relies on. Consider disabling extensions or strict privacy settings for a more stable experience."
         }).then(EmptyExec)
     }
 

@@ -34,7 +34,7 @@ export const App = (service: StudioService) => {
     const favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
     if (isDefined(favicon)) {
         terminator.own(service.roomAwareness.catchupAndSubscribe(owner =>
-            favicon.href = isDefined(owner.getValue()) ? "/favicon-live.svg" : "/favicon.svg"))
+            favicon.href = isDefined(owner.getValue()) ? "/favicon-live.svg" : "/favicon.png"))
     }
     return (
         <Frag>

@@ -222,7 +222,7 @@ export const DashboardPage: PageFactory<StudioService> = ({lifecycle}: PageConte
     return (
         <div className={className} onConnect={host => lifecycle.own(installScrollbars(host))}>
             <header className="dashboard-head">
-                <h1>openDAW Statistics</h1>
+                <h1>Metal-Duck Studio Statistics</h1>
                 <span className="updated">Updated {updatedAt}</span>
             </header>
             <Await

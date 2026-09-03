@@ -4,7 +4,7 @@ export const subscribeFavicon = (observable: DefaultObservableValue<Nullable<unk
     return observable.catchupAndSubscribe(owner => {
         const link = document.querySelector<HTMLLinkElement>("link[rel='icon']")
         if (isDefined(link)) {
-            link.href = isDefined(owner.getValue()) ? "/favicon-live.svg" : "/favicon.svg"
+            link.href = isDefined(owner.getValue()) ? "/favicon-live.svg" : "/favicon.png"
         }
     })
 }

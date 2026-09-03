@@ -1,4 +1,4 @@
-# Metal-Duck Studios Manuals
+# Metal-Duck Studio Manuals
 
 ## Known Issues
 

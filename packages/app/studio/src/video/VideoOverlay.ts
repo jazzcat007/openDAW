@@ -12,7 +12,7 @@ export class VideoOverlay implements Terminable {
     static async create(config: VideoOverlayConfig): Promise<VideoOverlay> {
         const canvas = new OffscreenCanvas(config.width, config.height)
         const ctx = canvas.getContext("2d")!
-        const logo = await VideoOverlay.#loadImage("/cover.png")
+        const logo = await VideoOverlay.#loadImage("/images/metal-duck-cover.webp")
         return new VideoOverlay(config, canvas, ctx, logo)
     }
 

@@ -36,7 +36,7 @@ export namespace Mixdowns {
         const {resolve, reject, promise} = Promise.withResolvers<void>()
         const {status, error} = await Promises.tryCatch(Dialogs.show({
             headline: "Encode Mixdown",
-            content: "openDAW will download FFmpeg (30MB) once to encode your mixdown unless you choose 'Wav'.",
+            content: "Metal-Duck Studio will download FFmpeg (30MB) once to encode your mixdown unless you choose 'Wav'.",
             excludeOk: true,
             buttons: [
                 {

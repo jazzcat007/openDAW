@@ -15,9 +15,9 @@ type Construct = {
 }
 
 export const Cover = ({lifecycle, model}: Construct) => {
-    const placeholder = "/cover.png"
+    const placeholder = "/images/metal-duck-cover.webp"
     const editIcon: Element = <Icon symbol={IconSymbol.EditBox} className="edit-icon"/>
-    const image: HTMLImageElement = (<img src={placeholder} alt="Cover"/>)
+    const image: HTMLImageElement = (<img src={placeholder} alt="Project cover"/>)
     lifecycle.ownAll(
         model.catchupAndSubscribe(owner => {
             image.src = owner.match({

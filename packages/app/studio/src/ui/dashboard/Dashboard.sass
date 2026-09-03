@@ -33,13 +33,36 @@ component
       display: flex
       flex-direction: column
       align-items: center
+      position: relative
+      isolation: isolate
 
-      > h1
-        color: white
-        font-size: 2.5em
-        margin: 0
+      &::before
+        content: ""
+        position: absolute
+        z-index: -1
+        inset: 10% -18% 5%
+        background: radial-gradient(ellipse, rgba(0, 238, 255, 0.12), rgba(255, 39, 200, 0.06) 46%, transparent 72%)
+        filter: blur(8px)
+        pointer-events: none
+
+      > .brand-logo
+        display: block
+        width: min(37.5em, 72vw)
+        height: auto
+        max-height: 10em
+        object-fit: contain
+        filter: drop-shadow(0 0 0.6em rgba(0, 238, 255, 0.22)) drop-shadow(0 0 1.2em rgba(255, 39, 200, 0.12))
+
+      > .brand-kicker
+        margin-top: -0.35em
+        color: var(--color-green)
+        font-size: 0.7em
+        font-weight: 600
+        letter-spacing: 0.22em
+        text-transform: uppercase
 
       > .tagline
+        margin-top: 0.45em
         font-size: 0.9375em
         color: var(--color-shadow)
 

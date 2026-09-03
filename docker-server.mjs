@@ -323,6 +323,7 @@ const mime = new Map([
   [".wasm", "application/wasm"],
   [".svg", "image/svg+xml"],
   [".png", "image/png"],
+  [".webp", "image/webp"],
   [".jpg", "image/jpeg"],
   [".jpeg", "image/jpeg"],
   [".wav", "audio/wav"],

@@ -15,7 +15,7 @@ export const showTone3000Dialog = (): Promise<void> => {
         content: (
             <div className={className}>
                 <p>
-                    openDAW partners with <strong>Tone 3000</strong> for NAM models.
+                    The openDAW engine partners with <strong>Tone 3000</strong> for NAM models.
                 </p>
                 <p>
                     <strong>Tone 3000</strong> is an online platform for sharing and downloading

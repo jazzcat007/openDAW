@@ -313,7 +313,7 @@ export namespace Dialogs {
                     <p>{message}</p>
                     {foreignHostname !== null ? (
                         <p style={{color: Colors.red.toString()}}>
-                            This error originated from external code ({foreignHostname}), not openDAW.
+                            This error originated from external code ({foreignHostname}), not Metal-Duck Studio.
                             If you are using a proxy or have browser extensions installed, please disable them.
                         </p>
                     ) : probablyHasExtension && (

@@ -42,7 +42,7 @@ const tiles: ReadonlyArray<Tile> = [
     {
         icon: IconSymbol.Code,
         title: "Hack the Rig",
-        text: "openDAW's open source. Tear it apart, fork it, build your own boxes and extensions. Make it yours.",
+        text: "Built on the open-source openDAW engine. Tear it apart, fork it, build new boxes and extensions.",
         path: "/manuals/open-source"
     }
 ]

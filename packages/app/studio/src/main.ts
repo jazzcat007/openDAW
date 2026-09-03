@@ -31,7 +31,7 @@ const showStartupError = (reason: unknown): void => {
 
 if (Browser.isMobile()) {
     document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;padding:2em;text-align:center;font-family:system-ui;color:#ccc;background:#1a1a1a">
-        <div><h1>openDAW</h1><p>openDAW requires a desktop browser.<br>Please visit on a computer.</p></div>
+        <div><img src="/images/metal-duck-studio-logo-300.png" alt="Metal-Duck Studio" style="width:min(300px,80vw);height:auto"><p>Metal-Duck Studio needs a desktop browser.<br>Bring a computer and make some noise.</p></div>
     </div>`
 } else if (window.crossOriginIsolated) {
     const now = Date.now()

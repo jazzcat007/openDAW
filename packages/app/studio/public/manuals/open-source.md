@@ -1,6 +1,6 @@
-# Open Source
+# The Engine Under the Feathers
 
-openDAW is open source. You are free to inspect it, learn from it, fork it, and build on top of it.
+Metal-Duck Studio runs on openDAW, an open-source audio engine and workstation. You are free to inspect it, learn from it, fork it, and build on top of it.
 
 ## The code
 

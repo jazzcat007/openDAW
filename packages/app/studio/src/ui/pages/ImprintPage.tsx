@@ -25,7 +25,7 @@ export const ImprintPage: PageFactory<StudioService> = ({lifecycle}: PageContext
             This imprint is provided to comply with German law.<br/>
         </p>
         <p>
-            For inquiries regarding openDAW, please use the contact above.
+            For inquiries regarding Metal-Duck Studio, please use the contact above.
         </p>
     </div>
 )

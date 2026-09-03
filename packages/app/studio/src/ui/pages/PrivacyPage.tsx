@@ -10,7 +10,7 @@ const className = Html.adoptStyleSheet(css, "PrivacyPage")
 export const PrivacyPage: PageFactory<StudioService> = ({lifecycle}: PageContext<StudioService>) => (
     <div className={className} onConnect={host => lifecycle.own(installScrollbars(host))}>
         <h1>House Rules</h1>
-        <p style={{color: Colors.blue.toString()}}>This is Metal-Duck's private lair. Invite-only. No tourists. Your tapes stay in the vault.</p>
+        <p style={{color: Colors.blue.toString()}}>This is Metal-Duck Studio's private lair. Invite-only. No tourists. Your tapes stay in the vault.</p>
         <h3>The Vault</h3>
         <p>Your projects and samples live on the studio server with local cache for backup. Only invited crew get in.</p>
         <h3>Cloud Hookups</h3>

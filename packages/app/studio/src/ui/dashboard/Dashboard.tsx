@@ -24,8 +24,10 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
     <div className={className}>
         <div className="intro">
             <header className="hero">
-                <h1>openDAW</h1>
-                <div className="tagline">Create Music Online</div>
+                <img className="brand-logo" src="/images/metal-duck-studio-logo-600.webp"
+                     alt="Metal-Duck Studio"/>
+                <div className="brand-kicker">Private browser DAW · Est. after dark</div>
+                <div className="tagline">Write loud. Mix neon. Duck responsibly.</div>
             </header>
             <ActionButtons lifecycle={lifecycle} service={service}/>
         </div>

@@ -17,7 +17,7 @@ export const populateStudioMenu = (service: StudioService) => {
     return MenuItem.root()
         .setRuntimeChildrenProcedure(parent => {
                 parent.addMenuItem(
-                    MenuItem.header({label: "openDAW", icon: IconSymbol.OpenDAW, color: Colors.green}),
+                    MenuItem.header({label: "Metal-Duck Studio", icon: IconSymbol.OpenDAW, color: Colors.green}),
                     MenuItem.default({
                         label: "Dashboard",
                         shortcut: Global["workspace-screen-dashboard"].shortcut.format()

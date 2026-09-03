@@ -100,7 +100,7 @@ export const boot = async ({workersUrl, workletsUrl, wasmProcessorUrl, wasmOffli
         document.querySelector("#preloader")?.remove()
         Dialogs.info({
             headline: "Engine Unavailable",
-            message: "openDAW could not load its audio engine. This is usually a temporary network issue, please reload the page."
+            message: "Metal-Duck Studio could not load the openDAW audio engine. This is usually a temporary network issue; please reload the page."
         }).finally()
         return
     }
@@ -169,7 +169,7 @@ export const boot = async ({workersUrl, workletsUrl, wasmProcessorUrl, wasmOffli
     if (opfsProbe.status === "rejected" || !opfsProbe.value) {
         Dialogs.info({
             headline: "Storage Unavailable",
-            message: "openDAW cannot start because the browser is blocking access to private storage, so samples, presets and projects cannot be persisted. This typically happens in Private Browsing mode. Please reopen openDAW in a regular browser window."
+            message: "Metal-Duck Studio cannot start because the browser is blocking access to private storage, so samples, presets and projects cannot be persisted. This typically happens in Private Browsing mode. Please reopen the studio in a regular browser window."
         }).finally()
         return
     }

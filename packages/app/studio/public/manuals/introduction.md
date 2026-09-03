@@ -1,8 +1,8 @@
 # Welcome to the Lair
 
-Metal-Duck Studios. Private studio. Invite-only. This ain't the public playground — it's our room, our gear, our people. Same engine as openDAW, but with the door locked and the lights set to neon.
+Metal-Duck Studio. Private room. Invite-only. This ain't the public playground — it's our gear, our people, and our noise. Powered by the openDAW engine, with the door locked and the lights set to neon.
 
-![openDAW studio](../images/studio.webp)
+![Metal-Duck Studio workstation](../images/studio.webp)
 
 ## Features
 

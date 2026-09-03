@@ -81,7 +81,10 @@ export const Header = ({lifecycle, service}: Construct) => {
         <header className={className}>
             <MenuButton root={service.menu}
                         appearance={{color: Colors.gray, activeColor: Colors.bright, tinyTriangle: true}}>
-                <h5>openDAW</h5>
+                <h5 className="studio-mark">
+                    <img src="/images/metal-duck-icon.webp" alt="Metal Duck"/>
+                    <span>Metal-Duck Studio</span>
+                </h5>
             </MenuButton>
             <MenuButton root={MenuItem.root()
                 .setRuntimeChildrenProcedure(parent =>

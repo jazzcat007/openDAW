@@ -32,6 +32,9 @@ COPY crates ./crates
 COPY scripts ./scripts
 COPY turbo.json lerna.json ./
 
+# Windows checkouts can carry CRLF despite the scripts being executed by Linux in this image.
+RUN find packages scripts -type f -name '*.sh' -exec sed -i 's/\r$//' {} +
+
 RUN npm ci
 RUN npm run build
 

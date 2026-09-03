@@ -10,13 +10,14 @@ type Construct = { error: unknown }
 export const MissingFeature = ({error}: Construct) => {
     return (
         <div className={className}>
-            <h1>Get openDAW Working</h1>
+            <img src="/images/metal-duck-studio-logo-600.webp" alt="Metal-Duck Studio"/>
+            <h1>Wake the Duck</h1>
             <h2>Problem: <span style={{color: Colors.purple.toString()}}>
                 {error instanceof Error ? error.message : String(error)}
             </span>
             </h2>
             <p>Please update your browser or switch to the latest Chrome (recommended).</p>
-            <p>openDAW should run on all modern browsers like Chrome, Edge, Firefox, and Safari.</p>
+            <p>Metal-Duck Studio should run on modern browsers like Chrome, Edge, Firefox, and Safari.</p>
             <p>If you are already using one of these, please report your problem to the studio owner.</p>
         </div>
     )
