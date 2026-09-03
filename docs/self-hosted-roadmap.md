@@ -18,23 +18,27 @@ The quickest path to a richer self-hosted studio is to grow the catalog first, b
    - Run `node scripts/mirror-factory-assets.mjs` after upstream catalog changes.
    - Keep `OPENDAW_FACTORY_OFFLINE_ONLY=true` in production so missing assets fail locally instead of leaking to upstream.
 
-2. Import soundfonts aggressively.
+2. Provision the built-in demo projects locally.
+   - Run `npm run import-demos` (or `npm run import-demos -- --root <factory-root>`) from a machine with upstream access.
+   - This writes the catalog to `demos/projects.json` and each bundle to `demos/<id>/project.odb` beneath the factory root. Once copied to the mounted factory volume, the Demos tab has no runtime dependency on `api.opendaw.studio`.
+
+3. Import soundfonts aggressively.
    - Use `npm run import-soundfonts -- <folder> --folder <catalog-name> --license <license> --url <source-url>`.
    - Prioritize permissively licensed SF2 packs: GeneralUser GS, FluidR3-compatible replacements where licensing is clear, orchestral packs, drum kits, GM/GS banks, vintage synth banks, and chiptune/game-style banks.
    - Keep imported entries grouped by source/license so attribution stays auditable.
 
-3. Add curated sample packs.
+4. Add curated sample packs.
    - Use `npm run import-samples -- <folder> --folder <catalog-path>`.
    - The importer converts common audio files to the extensionless 48 kHz float WAV format expected by the factory sample loader.
    - Suggested catalog folders: Drums, One-Shots, Loops, Foley, Vocals, Bass, Synth, Guitar, Keys, Impulse Responses.
    - Keep impulse responses in samples so the Convolver device can use them.
 
-4. Add local preset packs.
+5. Add local preset packs.
    - Presets are `.odp` files listed in `presets/index.json`.
    - Create seed projects/racks for common workflows, then export reusable presets into the factory mirror.
    - Suggested first presets: drum bus, vocal chain, mastering chain, lo-fi sampler, ambient send, guitar cab convolver, clean piano, orchestral sketch, synth bass, sidechain-style pump.
 
-5. Treat extra FX as product work.
+6. Treat extra FX as product work.
    - Existing native FX are compiled devices, not just catalog entries.
    - Short-term: ship more presets and IRs for existing FX.
    - Medium-term: make Tone3000/NAM asset handling local-first.
@@ -150,7 +154,7 @@ Implementation phases:
 5. Build the Admin section.
    - Users: create users, reset passwords, disable users, assign roles. **(done: `/admin` page + `/api/admin/users`)**
    - Invites: one-time invite links for friends. **(done: `/admin` Invites tab + `/api/admin/invites` + `/api/auth/{invite,register}`)**
-   - Projects: ownership, membership, archive/trash, storage usage, export/backup.
+   - Projects: ownership, membership (see Project Privacy & Sharing below), archive/trash, storage usage, export/backup.
    - Live Rooms: active rooms, participants, stale-room cleanup, force snapshot, close room. **(data exists via
      `GET /api/rooms`, no Admin UI panel yet)**
    - Assets: import queue, sample/soundfont/preset catalogs, license/source metadata.
@@ -162,6 +166,58 @@ Implementation phases:
    - Scheduled backups of `/data/server`, `/data/projects`, `/data/rooms`, and `/data/factory`.
    - Per-project export bundles so no work is locked into the server.
    - Recovery path for browser OPFS drafts that have not synced yet.
+
+## Project Privacy & Sharing
+
+Goal: a Project starts visible only to the person who created it, and stays that way until they
+deliberately open it up to specific collaborators — matching the "known collaborators, not
+anonymous participants" posture in `docs/philosophy.md`, applied at the project level, not just
+the instance level.
+
+Current state — this is a real gap, not a cosmetic one:
+
+- `defaultSettings.projectDefaults.visibility` in `docker-server.mjs:61` already says `"private"`,
+  but nothing enforces it. It's an unused placeholder.
+- Project `meta.json` carries no owner or membership field. `POST /api/projects` (`docker-server.mjs:476-486`)
+  never stamps who created a project.
+- `listProjectSummaries()` (`docker-server.mjs:443-453`) returns every project on the server, and
+  every project-scoped endpoint (`GET/PUT/DELETE /api/projects/:uuid/...`) is reachable by any
+  authenticated user regardless of who made it. Today, "private" means "behind the instance's
+  login," not "private to me" — any invited friend can already list, open, and overwrite anyone
+  else's project.
+- Live Rooms already have a narrower version of ownership (`ownerUserId` on room-links,
+  `docker-server.mjs:1082-1091`) that Projects don't have yet — that's the pattern to reuse.
+
+Proposed phases:
+
+1. Stamp ownership at creation.
+   - Add `ownerUserId` (and `createdBy` display name) to `meta.json` when `POST /api/projects` runs,
+     the same way room-links already stamp `ownerUserId`.
+   - Backfill existing projects with no owner as owned by whichever admin runs the migration, or
+     leave them unowned/admin-only until claimed.
+
+2. Add a membership list and enforce it server-side.
+   - `meta.json` gains `members: [{userId, role}]`, defaulting to just the owner.
+   - `listProjectSummaries()` and every per-project route filter/authorize by membership instead of
+     trusting any logged-in user; admins bypass for support/moderation.
+   - This is the piece that makes `projectDefaults.visibility: "private"` actually true.
+
+3. Add a Share action.
+   - Owner picks from the existing user roster (small, known set — same list Admin already manages,
+     not an open invite) to add someone as a collaborator.
+   - This is the "open up for collaboration" moment: a project stays single-owner and invisible to
+     everyone else until this is used.
+   - Surface membership (avatars/names) and a private/shared badge in the Project browser.
+
+4. Make Live Rooms respect project membership.
+   - A room started from a Project should only be joinable by that project's members, not anyone
+     who guesses/receives the room name — closing the gap noted in Server-First Collaboration Model
+     phase 3 ("no membership list beyond the single owner").
+
+5. Extend Admin visibility.
+   - The Admin "Projects" section (Server-First Collaboration Model phase 5) already lists
+     "ownership, membership" as an open item — this phase is what fills that in: an
+     owner/members column, plus an admin override to add/remove members or reassign ownership.
 
 ## Project Versioning
 
