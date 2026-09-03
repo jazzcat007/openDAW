@@ -26,9 +26,15 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
             <header className="hero">
                 <img className="brand-logo" src="/images/metal-duck-studio-logo-600.webp"
                      alt="Metal-Duck Studio"/>
-                <div className="brand-kicker">Private browser DAW · Est. after dark</div>
-                <div className="tagline">Write loud. Mix neon. Duck responsibly.</div>
+                <div className="brand-kicker">Private browser DAW · chipmunk punk / disco duck division</div>
+                <div className="tagline">Start a racket whenever. Pass the tape. Pick up where the flock left off.</div>
             </header>
+            <div className="welcome-note">
+                <strong>Make music together without getting the whole band out of bed.</strong>
+                <span>Build a banger in your browser, stash it in the private vault, then pass a Project Bundle to
+                    the next duck. They add their weird little part whenever the moon is right — between the school
+                    run, the back stretches, and an extremely serious conversation about compact SUVs.</span>
+            </div>
             <ActionButtons lifecycle={lifecycle} service={service}/>
         </div>
         <div className="main">
@@ -38,10 +44,8 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
             <div className="rail">
                 <HelpFeedback/>
                 <Backup service={service}/>
-                <Links/>
                 <Sponsors/>
                 <SampleProviders/>
-                <Contributors/>
             </div>
         </div>
         <IntroTiles/>

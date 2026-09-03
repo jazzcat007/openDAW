@@ -16,27 +16,30 @@ type Tile = {
 const tiles: ReadonlyArray<Tile> = [
     {
         icon: IconSymbol.Timeline,
-        title: "The Lair",
-        text: "Guitars, synths, a mixer, MIDI and audio recording — all in one neon-lit room. Build tracks from "
-            + "scratch and make 'em loud.",
+        title: "Make a racket",
+        text: "Guitars, synths, a mixer, MIDI and recording — one neon lair in your browser. Start with a blank "
+            + "tape or raid a demo and make it quack.",
         path: "/manuals/introduction"
     },
     {
-        icon: IconSymbol.Connected,
-        title: "Jam Rooms",
-        text: "Fire up a room, bring the crew in, and play together live. Same session, same vibe, real time.",
-        path: "/manuals/live-rooms"
+        icon: IconSymbol.Tape,
+        title: "Pass the tape",
+        text: "Export a Project Bundle, fling it to a pal, and let them open it whenever life allows. No matching "
+            + "schedules, no polite little calendar squares.",
+        path: "/manuals/project-management"
     },
     {
         icon: IconSymbol.Book,
-        title: "House Rules",
-        text: "Invite-only. Friends and family. No randoms. Your tapes stay in the vault with full history.",
-        path: "/manuals/education"
+        title: "Jam live when ducks align",
+        text: "When the flock is actually online, open a Live Room and make noise in the same project — with a link "
+            + "just for your crew.",
+        path: "/manuals/live-rooms"
     },
     {
         icon: IconSymbol.Lock,
-        title: "Locked Down",
-        text: "Metal-Duck's private rig. Invite-only access, server-backed, no public peeking.",
+        title: "Keep your tapes greasy",
+        text: "Projects live in your private vault. Keep a local backup, use your own cloud, or pass a complete bundle "
+            + "hand to hand like a very loud mixtape.",
         path: "/privacy"
     },
     {

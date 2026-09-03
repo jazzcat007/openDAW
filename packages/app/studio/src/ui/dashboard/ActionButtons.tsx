@@ -21,11 +21,11 @@ export const ActionButtons = ({service}: Construct) => (
                 onclick={() => service.newProject()}>
             <Icon symbol={IconSymbol.New}/><span>New Project</span>
         </button>
-        <button className="action" title="Jam with others in real time, share a link."
+        <button className="action" title="For the times everyone is free: jam together in real time and share a link."
                 onclick={() => connectRoom(service)}>
             <Icon symbol={IconSymbol.Connected}/><span>New Live Room</span>
         </button>
-        <button className="action" title="Load a project bundle (.odb) from disk."
+        <button className="action" title="Open a project bundle a collaborator sent you and add your next pass."
                 onclick={() => service.importBundle()}>
             <Icon symbol={IconSymbol.Folder}/><span>Open Bundle</span>
         </button>
