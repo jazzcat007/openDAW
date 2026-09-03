@@ -7,6 +7,7 @@
 - Factory mirror root: `/srv/dev-disk-by-uuid-43c0d683-376c-4b42-a6df-64a09c625b76/appdata/opendaw/factory`
 - Available media volume capacity: about 16T free
 - Current factory catalog: 902 samples, 7 soundfonts, 49 presets
+- Demo projects are loaded from `/factory/demos` and can be provisioned with `npm run import-demos`.
 - Current runtime assets: FFmpeg core, BasicPitch, tempo detection, htdemucs, and htdemucs-jx are mirrored locally
 - Current built-in device surface: 9 instruments, 5 MIDI FX, 19 audio FX
 
@@ -17,6 +18,7 @@ The quickest path to a richer self-hosted studio is to grow the catalog first, b
 1. Keep the upstream openDAW factory mirror complete.
    - Run `node scripts/mirror-factory-assets.mjs` after upstream catalog changes.
    - Keep `OPENDAW_FACTORY_OFFLINE_ONLY=true` in production so missing assets fail locally instead of leaking to upstream.
+   - Run `npm run import-demos` after deploying demo catalog changes so the Demos tab can load bundles from `/factory/demos` while offline-only mode is enabled.
 
 2. Import soundfonts aggressively.
    - Use `npm run import-soundfonts -- <folder> --folder <catalog-name> --license <license> --url <source-url>`.
