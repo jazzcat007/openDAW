@@ -383,9 +383,22 @@ const serveStatic = (req, res) => {
     sendJson(res, 404, {error: "Not found"})
     return
   }
+  if (!exists && extname(requestPath) !== "") {
+    send(res, 404, {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "CDN-Cache-Control": "no-store",
+      "Cloudflare-CDN-Cache-Control": "no-store"
+    }, "Not found")
+    return
+  }
   const file = exists ? candidate : join(root, "index.html")
   const type = mime.get(extname(file)) ?? "application/octet-stream"
-  res.writeHead(200, {...commonHeaders, "Content-Type": type})
+  const cacheControl = extname(file) === ".html"
+    ? "no-store"
+    : "public, max-age=31536000, immutable"
+  const cdnCacheControl = extname(file) === ".html" ? {"CDN-Cache-Control": "no-store"} : {}
+  res.writeHead(200, {...commonHeaders, "Content-Type": type, "Cache-Control": cacheControl, ...cdnCacheControl})
   createReadStream(file).pipe(res)
 }
 
