@@ -1,6 +1,6 @@
 # Capture MIDI at Play Phase
 
-**Issue**: https://github.com/andremichelle/openDAW/issues/215
+**Issue**: https://github.com/jazzcat007/openDAW/issues/215
 
 ## Summary
 

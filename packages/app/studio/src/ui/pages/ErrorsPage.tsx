@@ -18,12 +18,8 @@ export const ErrorsPage: PageFactory<StudioService> = ({lifecycle}: PageContext<
     return (
         <div className={className}>
             <h1>Errors</h1>
-            <p>This page shows all errors reported from users running openDAW in production, helping us identify and fix
+            <p>This page shows all errors reported from users running Metal-Duck Studio in production, helping us identify and fix
                 issues.</p>
-            <h5>Report any issues <a href="https://github.com/andremichelle/opendaw/issues/"
-                                     target="github"
-                                     style={{color: Colors.blue}}
-            >here</a>.</h5>
             <code onInit={async element => {
                 element.textContent = "local self-contained build: remote error logs disabled"
             }} style={{fontSize: "10px", marginBottom: "1em", color: Colors.blue.toString()}}/>

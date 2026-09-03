@@ -7,7 +7,6 @@ import {Resources} from "@/ui/dashboard/Resources"
 import {IntroTiles} from "@/ui/dashboard/IntroTiles"
 import {ActionButtons} from "@/ui/dashboard/ActionButtons"
 import {Backup} from "@/ui/dashboard/Backup"
-import {Sponsors} from "@/ui/dashboard/Sponsors"
 import {SampleProviders} from "@/ui/dashboard/SampleProviders"
 import {HelpFeedback} from "@/ui/dashboard/HelpFeedback"
 import {DashboardSignal} from "@/ui/dashboard/DashboardSignal"
@@ -44,7 +43,6 @@ export const Dashboard = ({lifecycle, service}: Construct) => (
             <div className="rail">
                 <HelpFeedback/>
                 <Backup service={service}/>
-                <Sponsors/>
                 <SampleProviders/>
             </div>
         </div>

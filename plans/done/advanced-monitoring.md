@@ -1,6 +1,6 @@
 # Advanced Monitoring — Independent Controls & Output Routing
 
-**Issue:** [#230](https://github.com/andremichelle/opendaw/issues/230)
+**Issue:** [#230](https://github.com/jazzcat007/openDAW/issues/230)
 
 ## Overview
 

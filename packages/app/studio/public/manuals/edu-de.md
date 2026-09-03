@@ -167,4 +167,4 @@ Sprechen Sie uns an für ein individuelles Angebot, das zu Ihrer Einrichtung pas
 
 Für Fragen, Feedback oder Kooperationsanfragen:
 
-* GitHub: [github.com/andremichelle/opendaw](https://github.com/andremichelle/opendaw)
+* GitHub: [github.com/jazzcat007/openDAW](https://github.com/jazzcat007/openDAW)

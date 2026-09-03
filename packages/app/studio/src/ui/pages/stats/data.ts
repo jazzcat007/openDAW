@@ -42,13 +42,6 @@ export type Sponsor = {
     url: string
 }
 
-export type Contributor = {
-    login: string
-    avatarUrl: string
-    url: string
-    contributions: number
-}
-
 export type SponsorStats = {
     fetchedAt: Nullable<string>
     totalCount: number
@@ -73,10 +66,6 @@ export const fetchUserStats = async (): Promise<DailySeries> => {
 
 export const fetchGitHubStats = async (): Promise<GitHubStats> => {
     return {stars: 0, forks: 0, watchers: 0, openIssues: 0, lastCommit: 0}
-}
-
-export const fetchContributors = async (): Promise<ReadonlyArray<Contributor>> => {
-    return []
 }
 
 export const fetchDiscordStats = async (): Promise<DiscordStats> => {

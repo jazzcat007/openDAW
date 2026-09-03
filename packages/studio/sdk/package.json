@@ -9,7 +9,7 @@
   "description": "One-line installer for the complete OpenDAW Studio tool-chain",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andremichelle/opendaw"
+    "url": "https://github.com/jazzcat007/openDAW"
   },
   "keywords": [
     "opendaw",

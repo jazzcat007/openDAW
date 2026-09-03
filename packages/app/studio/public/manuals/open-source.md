@@ -4,7 +4,7 @@ Metal-Duck Studio runs on openDAW, an open-source audio engine and workstation. 
 
 ## The code
 
-The full source lives on [GitHub](https://github.com/andremichelle/openDAW). You can run it yourself, study how the audio engine and devices work, or contribute fixes and features.
+The full source lives on [GitHub](https://github.com/jazzcat007/openDAW). You can run it yourself, study how the audio engine and devices work, or contribute fixes and features.
 
 ## Extend it
 

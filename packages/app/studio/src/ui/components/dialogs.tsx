@@ -287,12 +287,6 @@ export namespace Dialogs {
             <Dialog headline="You Found A Bug ❤️"
                     icon={IconSymbol.Bug}
                     buttons={backupCommand.nonEmpty() ? [{
-                        text: "Recover",
-                        onClick: () => {
-                            const command = backupCommand.unwrap()
-                            command().then(() => location.reload())
-                        }
-                    }, {
                         text: "Dismiss",
                         onClick: () => {
                             if (Browser.isLocalHost()) {
@@ -302,9 +296,12 @@ export namespace Dialogs {
                             }
                         }
                     }, {
-                        text: "Report",
+                        text: "Recover",
                         primary: true,
-                        onClick: () => window.open("https://github.com/andremichelle/openDAW/issues/new", "github")
+                        onClick: () => {
+                            const command = backupCommand.unwrap()
+                            command().then(() => location.reload())
+                        }
                     }] : Arrays.empty()}
                     cancelable={false}
                     error>

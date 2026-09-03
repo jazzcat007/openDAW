@@ -8,7 +8,7 @@
 Automatic transient detection sometimes produces false or misplaced transients. Users need to move, add, and delete transient markers manually.
 
 ## Current behaviour / relevant code
-There is already an in-repo design document for this exact issue: `packages/app/studio/src/ui/timeline/editors/audio/transient-editing.md` (references `github.com/andremichelle/opendaw/issues/114` directly). It specifies the model, constraints, and two open questions (below). This plan is built on top of it plus direct code inspection.
+There is already an in-repo design document for this exact issue: `packages/app/studio/src/ui/timeline/editors/audio/transient-editing.md` (references `github.com/jazzcat007/openDAW/issues/114` directly). It specifies the model, constraints, and two open questions (below). This plan is built on top of it plus direct code inspection.
 
 - Detection: `Workers.Transients.detect(audioData)`, called from `packages/studio/core/src/project/audio/AudioContentModifier.ts:78`; the algorithm itself runs in a worker (`packages/studio/core/src/Workers.ts`).
 - Storage: `TransientMarkerBox` (`packages/studio/boxes/src/TransientMarkerBox.ts`, generated from `packages/studio/forge-boxes/src/schema/std/TransientMarkerBox.ts`) — two fields: `owner: PointerField<Pointers.TransientMarkers>` (mandatory) and `position: Float32Field` (`"non-negative"`, unit `"seconds"`). Boxes are owned by `AudioFileBox.transientMarkers` (`AudioFileBoxAdapter.ts:54`), i.e. **shared across every region that references that audio file** — editing one transient affects all regions using that file.

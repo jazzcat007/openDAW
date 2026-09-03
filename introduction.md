@@ -199,7 +199,7 @@ can offer completions.
 Depends on essentially every published package.
 
 A meta package with no code of its own. Installing it pulls the whole toolchain in one step, which is what
-[openDAW-headless](https://github.com/andremichelle/opendaw-headless) consumes.
+[openDAW-headless](https://github.com/andremichelle/openDAW-headless) consumes.
 
 ---
 

@@ -1,5 +1,9 @@
 # Workspace Agent Instructions
 
+## Compatibility
+
+- Keep projects backward compatible whenever feasible. Before introducing a breaking change, prefer a compatible migration path and clearly document any unavoidable incompatibility.
+
 ## MemPalace
 
 MemPalace is the local memory system for this workspace. Use it to preserve and retrieve project context across sessions.

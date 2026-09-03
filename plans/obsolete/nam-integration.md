@@ -644,7 +644,7 @@ node_modules/
 
 ## Resources
 
-- [openDAW](https://github.com/andremichelle/opendaw) - This project
+- [openDAW](https://github.com/jazzcat007/openDAW) - This project
 - [NeuralAmpModelerCore](https://github.com/sdatkinson/NeuralAmpModelerCore) - MIT License
 - [neural-amp-modeler-wasm](https://github.com/tone-3000/neural-amp-modeler-wasm) - MIT License
 - [TONE3000 Model Library](https://www.tone3000.com/)

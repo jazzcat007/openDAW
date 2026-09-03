@@ -6,6 +6,9 @@ import {DeviceBox, DeviceBoxUtils} from "@opendaw/studio-adapters"
 export namespace DeviceIO {
     export const exportDevice = (box: Box): ArrayBufferLike => {
         const dependencies = Array.from(box.graph.dependenciesOf(box).boxes)
+        const includedUuids = UUID.newSet<UUID.Bytes>(uuid => uuid)
+        includedUuids.add(box.address.uuid)
+        dependencies.forEach(dependency => includedUuids.add(dependency.address.uuid))
 
         const output = ByteArrayOutput.create()
         output.writeString("openDAW:device")
@@ -17,9 +20,19 @@ export namespace DeviceIO {
             output.writeInt(arrayBuffer.byteLength)
             output.writeBytes(new Int8Array(arrayBuffer))
         }
-        writeBox(box)
-        output.writeInt(dependencies.length)
-        dependencies.forEach(dep => writeBox(dep))
+        // A pointer leaving this device's own snapshot (e.g. `host`, which targets the device
+        // chain slot in whatever project this box currently lives in) is meaningless once
+        // reimported into a different BoxGraph, so it must be written empty here rather than
+        // carrying a stale foreign address across the roundtrip.
+        PointerField.encodeWith({
+            map: (pointer: PointerField): Option<Address> =>
+                pointer.targetAddress.flatMap(address =>
+                    includedUuids.hasKey(address.uuid) ? Option.wrap(address) : Option.None)
+        }, () => {
+            writeBox(box)
+            output.writeInt(dependencies.length)
+            dependencies.forEach(dep => writeBox(dep))
+        })
         return output.toArrayBuffer()
     }
 

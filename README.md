@@ -5,7 +5,7 @@
 
 <p align="center">
 <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="nofollow"><img src="https://img.shields.io/badge/license-AGPLv3-blue.svg" alt="License: AGPLv3"></a>
-<a href="https://github.com/andremichelle/opendaw" rel="nofollow"><img src="https://img.shields.io/github/stars/andremichelle/opendaw" alt="stars"></a>
+<a href="https://github.com/jazzcat007/openDAW" rel="nofollow"><img src="https://img.shields.io/github/stars/jazzcat007/openDAW" alt="stars"></a>
 </p>
 
 **Metal-Duck Studios** — private studio, invite-only, 80s neon attitude. Built on openDAW's engine, but this is our lair, not the public playground.
@@ -40,7 +40,7 @@ The source code for openDAW is available under **AGPL v3 (or later)**
 
 We welcome contributions that follow the existing style and conventions of the project. AI-assisted code is fine, but
 every contributor must **understand every line of code they submit**. If you use AI tools, please document your process
-in [`/plans`](https://github.com/andremichelle/openDAW/tree/main/plans). Keep pull requests small and focused. Large
+in [`/plans`](https://github.com/jazzcat007/openDAW/tree/main/plans). Keep pull requests small and focused. Large
 PRs will not be reviewed. Split big contributions into smaller commits that add requirements gradually and maintain
 operations of the app.
 
@@ -50,7 +50,7 @@ If you are interested in helping, here are areas where we need support:
 2. **PWA** — turning openDAW into a fully installable Progressive Web App with offline support
 3. **Timeline Track Management** — design and UX help for track layout, ordering, grouping, and interaction
 
-We always appreciate help on open issues: https://github.com/andremichelle/openDAW/issues
+We always appreciate help on open issues: https://github.com/jazzcat007/openDAW/issues
 
 ---
 
@@ -128,8 +128,8 @@ skyboundzoo, JHINZ, Mark Dammer, fork-kun, Martin Eigel
 
 ### Repositories
 
-* [openDAW](https://github.com/andremichelle/opendaw)
-* [openDAW-headless (SDK)](https://github.com/andremichelle/opendaw-headless)
+* [openDAW](https://github.com/jazzcat007/openDAW)
+* [openDAW-headless (SDK)](https://github.com/andremichelle/openDAW-headless)
 * [openDAW-headless @naomiaro](https://github.com/naomiaro/opendaw-test) (openDAW-headless fork with more docs and
   examples)
 
@@ -163,7 +163,7 @@ evolves.
 - [ ] Plugin support for Reaper, Bitwig, and other DAWs
 - [ ] [Launch 1.0](https://opendaw.org/release26/)
 
-For more issues and feature requests, visit [github.com/andremichelle/opendaw/issues/](https://github.com/andremichelle/opendaw/issues/)
+For more issues and feature requests, visit [github.com/jazzcat007/openDAW/issues/](https://github.com/jazzcat007/openDAW/issues/)
 
 ### Prepare, Clone, Installation, and Run
 
@@ -205,7 +205,7 @@ Before starting, ensure you have the following installed on your system:
 
 ### Clone
 
-`git clone https://github.com/andremichelle/opendaw.git && cd opendaw`
+`git clone https://github.com/jazzcat007/openDAW.git && cd opendaw`
 
 ### Installation
 
@@ -215,6 +215,15 @@ Before starting, ensure you have the following installed on your system:
 * `npm run build` (for the first time and after `npm run clean`)
 * `npm run dev:studio` | `npm run dev:headless` (start dev server)
 * Navigate to https://localhost:8080 (port is important > cors sample api)
+
+#### Windows
+
+* Use **Git Bash** for all `npm run` commands. The `cert` and `clean` scripts invoke `bash ./scripts/*.sh` directly.
+  Git Bash is bundled with [Git for Windows](https://gitforwindows.org/).
+* Install `mkcert` via `choco install mkcert` or `scoop install mkcert`, then run `mkcert -install` once to register the local CA in Windows.
+* Node.js >=23 and Rust installers work natively on Windows.
+* Git Bash provides `openssl.exe` used by the scripts; no separate OpenSSL install needed.
+* Alternative: run the whole build inside WSL2 Ubuntu — all instructions then apply verbatim.
 
 ## Links
 
