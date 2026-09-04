@@ -19,6 +19,13 @@ import {ServerProjects} from "./ServerProjects"
 import {Workers} from "../Workers"
 import {ProjectPaths} from "./ProjectPaths"
 
+export class ProjectSaveError extends Error {
+    constructor(readonly kind: "storage" | "server", readonly originalError: unknown) {
+        super(kind === "storage" ? "Could not write project to browser storage" : "Could not save project to server")
+        this.name = "ProjectSaveError"
+    }
+}
+
 export class ProjectProfile {
     readonly #uuid: UUID.Bytes
     readonly #project: Project
@@ -241,7 +248,7 @@ export class ProjectProfile {
     static async #writeFiles({uuid, project, meta, cover}: ProjectProfile): Promise<void> {
         const projectBuffer = project.toArrayBuffer() as ArrayBuffer
         const metaBuffer = new TextEncoder().encode(JSON.stringify(meta))
-        await Promise.all([
+        const localWrite = Promise.all([
             Workers.Opfs.write(ProjectPaths.projectFile(uuid), new Uint8Array(projectBuffer)),
             Workers.Opfs.write(ProjectPaths.projectMeta(uuid), metaBuffer),
             cover.match({
@@ -249,8 +256,10 @@ export class ProjectProfile {
                 some: x => Workers.Opfs.write(ProjectPaths.projectCover(uuid), new Uint8Array(x))
             })
         ]).then(EmptyExec)
+        const {status: localStatus, error: localError} = await Promises.tryCatch(localWrite)
+        if (localStatus === "rejected") {return Promise.reject(new ProjectSaveError("storage", localError))}
         if (!await ServerProjects.isAvailable()) {return}
         const {status, error} = await Promises.tryCatch(ServerProjects.saveProject(uuid, projectBuffer, meta, cover))
-        if (status === "rejected") {return Promise.reject(error)}
+        if (status === "rejected") {return Promise.reject(new ProjectSaveError("server", error))}
     }
 }

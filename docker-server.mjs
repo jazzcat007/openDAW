@@ -650,7 +650,18 @@ const serveProjectsApi = async (req, res) => {
   }
   const folder = projectFolder(uuid)
   const metaPath = join(folder, "meta.json")
-  const existingMeta = readJson(metaPath, null)
+  let existingMeta = readJson(metaPath, null)
+  if (existingMeta === null && segments.length === 2 && ["file", "meta", "cover"].includes(resource) && req.method === "PUT") {
+    const now = new Date().toISOString()
+    existingMeta = {
+      name: "Untitled", artist: "", description: "", tags: [], created: now, modified: now,
+      ownerUserId: currentUser.id,
+      createdBy: currentUser.username,
+      members: [{userId: currentUser.id, role: "owner"}]
+    }
+    mkdirSync(folder, {recursive: true})
+    writeFileSync(metaPath, `${JSON.stringify(existingMeta, null, 2)}\n`)
+  }
   // Existing projects from before per-project privacy have no owner. Keep them
   // admin-only until an administrator explicitly claims or migrates them.
   if (existingMeta === null || !canReadProject(existingMeta, currentUser)) {

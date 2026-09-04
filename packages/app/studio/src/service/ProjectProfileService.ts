@@ -21,6 +21,7 @@ import {
     ProjectMeta,
     ProjectMigration,
     ProjectProfile,
+    ProjectSaveError,
     ProjectSignals,
     ProjectStorage,
     SampleService,
@@ -75,8 +76,11 @@ export class ProjectProfileService {
             const {status, error} = await Promises.tryCatch(profile.save())
             if (status === "rejected") {
                 console.warn(error)
+                const serverFailure = error instanceof ProjectSaveError && error.kind === "server"
                 RuntimeNotifier.notify({
-                    message: "Could not save project (storage temporarily unavailable). Please try again.",
+                    message: serverFailure
+                        ? "Could not save project to the server. Your changes are still saved in this browser."
+                        : "Could not save project (storage temporarily unavailable). Please try again.",
                     icon: "Warning"
                 })
             }
@@ -102,8 +106,11 @@ export class ProjectProfileService {
             const {status: saveStatus, value: optProfile, error} = await Promises.tryCatch(profile.saveAs(meta))
             if (saveStatus === "rejected") {
                 console.warn(error)
+                const serverFailure = error instanceof ProjectSaveError && error.kind === "server"
                 RuntimeNotifier.notify({
-                    message: "Could not save project (storage temporarily unavailable). Please try again.",
+                    message: serverFailure
+                        ? "Could not save project to the server. Your changes are still saved in this browser."
+                        : "Could not save project (storage temporarily unavailable). Please try again.",
                     icon: "Warning"
                 })
                 return

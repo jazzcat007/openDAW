@@ -57,18 +57,29 @@ export namespace ServerProjects {
                                       meta: ProjectMeta,
                                       cover: Option<ArrayBuffer>): Promise<void> => {
         const uuidString = UUID.toString(uuid)
-        const requests: Array<Promise<Response>> = [
-            fetch(`/api/projects/${uuidString}/file`, {method: "PUT", headers: CsrfHeader, body: project}),
-            fetch(`/api/projects/${uuidString}/meta`, {
-                method: "PUT",
-                headers: {"Content-Type": "application/json", ...CsrfHeader},
-                body: JSON.stringify(meta)
-            })
+        const requests: Array<{ url: string, promise: Promise<Response> }> = [
+            {
+                url: `/api/projects/${uuidString}/file`,
+                promise: fetch(`/api/projects/${uuidString}/file`, {method: "PUT", headers: CsrfHeader, body: project})
+            },
+            {
+                url: `/api/projects/${uuidString}/meta`,
+                promise: fetch(`/api/projects/${uuidString}/meta`, {
+                    method: "PUT",
+                    headers: {"Content-Type": "application/json", ...CsrfHeader},
+                    body: JSON.stringify(meta)
+                })
+            }
         ]
-        cover.ifSome(bytes => requests.push(fetch(`/api/projects/${uuidString}/cover`,
-            {method: "PUT", headers: CsrfHeader, body: bytes})))
-        const responses = await Promise.all(requests)
-        if (responses.some(response => !response.ok)) {return panic("Failed to save project to server")}
+        cover.ifSome(bytes => {
+            const url = `/api/projects/${uuidString}/cover`
+            requests.push({url, promise: fetch(url, {method: "PUT", headers: CsrfHeader, body: bytes})})
+        })
+        const responses = await Promise.all(requests.map(request => request.promise))
+        const failures = responses
+            .map((response, index) => response.ok ? "" : `${requests[index].url} ${response.status}`)
+            .filter(Boolean)
+        if (failures.length > 0) {return panic(`Failed to save project to server (${failures.join(", ")})`)}
     }
 
     export const duplicateProject = async (uuid: UUID.Bytes): Promise<UUID.Bytes> => {
