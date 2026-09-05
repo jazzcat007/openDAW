@@ -5,6 +5,7 @@ import {ReverbDeviceBox} from "./audio-effects/ReverbDeviceBox"
 import {TapeDeviceBox} from "./instruments/TapeDeviceBox"
 import {VaporisateurDeviceBox} from "./instruments/VaporisateurDeviceBox"
 import {ArpeggioDeviceBox} from "./midi-effects/ArpeggioDeviceBox"
+import {EuclidDeviceBox} from "./midi-effects/EuclidDeviceBox"
 import {PitchDeviceBox} from "./midi-effects/PitchDeviceBox"
 import {NeonDeviceBox} from "./instruments/NeonDeviceBox"
 import {NanoDeviceBox} from "./instruments/NanoDeviceBox"
@@ -74,6 +75,7 @@ export const DeviceDefinitions = [
     PlayfieldSampleBox,
     TapeDeviceBox,
     ArpeggioDeviceBox,
+    EuclidDeviceBox,
     PitchDeviceBox,
     ZeitgeistDeviceBox,
     NeuralAmpDeviceBox,

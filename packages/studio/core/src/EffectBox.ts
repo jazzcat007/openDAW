@@ -9,6 +9,7 @@ import {
     CrusherDeviceBox,
     DattorroReverbDeviceBox,
     DelayDeviceBox,
+    EuclidDeviceBox,
     FoldDeviceBox,
     GateDeviceBox,
     ModularDeviceBox,
@@ -29,7 +30,7 @@ import {
 } from "@opendaw/studio-boxes"
 
 export type EffectBox =
-    | ArpeggioDeviceBox | PitchDeviceBox | VelocityDeviceBox | ZeitgeistDeviceBox | UnknownMidiEffectDeviceBox
+    | ArpeggioDeviceBox | EuclidDeviceBox | PitchDeviceBox | VelocityDeviceBox | ZeitgeistDeviceBox | UnknownMidiEffectDeviceBox
     | SpielwerkDeviceBox
     | MaximizerDeviceBox | DelayDeviceBox | ReverbDeviceBox | RevampDeviceBox | StereoToolDeviceBox | TidalDeviceBox
     | ModularDeviceBox | UnknownAudioEffectDeviceBox | CompressorDeviceBox | GateDeviceBox

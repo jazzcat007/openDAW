@@ -10,6 +10,7 @@ import {
     CrusherDeviceBox,
     DattorroReverbDeviceBox,
     DelayDeviceBox,
+    EuclidDeviceBox,
     FoldDeviceBox,
     FrequencySplitBox,
     GateDeviceBox,
@@ -58,6 +59,23 @@ export namespace EffectFactories {
         create: ({boxGraph}, hostField, index) =>
             ArpeggioDeviceBox.create(boxGraph, UUID.generate(), (box) => {
                 box.label.setValue("Arpeggio")
+                box.index.setValue(index)
+                box.host.refer(hostField)
+            })
+    }
+
+    export const Euclid: EffectFactory = {
+        defaultName: "Euclid",
+        defaultIcon: IconSymbol.Stack,
+        briefDescription: "Euclidean Sequencer",
+        description: "Generates rotating Euclidean note patterns",
+        manualPage: DeviceManualUrls.Euclid,
+        separatorBefore: false,
+        external: false,
+        type: "midi",
+        create: ({boxGraph}, hostField, index) =>
+            EuclidDeviceBox.create(boxGraph, UUID.generate(), (box) => {
+                box.label.setValue("Euclid")
                 box.index.setValue(index)
                 box.host.refer(hostField)
             })
@@ -568,6 +586,7 @@ export namespace EffectFactories {
 
     export const MidiNamed = {
         Arpeggio,
+        Euclid,
         Pitch,
         Spielwerk,
         Velocity,

@@ -2,6 +2,7 @@ import {createElement, JsxValue} from "@opendaw/lib-jsx"
 import {
     ApparatDeviceBox,
     ArpeggioDeviceBox,
+    EuclidDeviceBox,
     AudioBusBox,
     AudioEffectCompositeBox,
     AutotuneDeviceBox,
@@ -42,12 +43,14 @@ import {
     ZeitgeistDeviceBox
 } from "@opendaw/studio-boxes"
 import {ArpeggioDeviceEditor} from "@/ui/devices/midi-effects/ArpeggioDeviceEditor.tsx"
+import {EuclidDeviceEditor} from "@/ui/devices/midi-effects/EuclidDeviceEditor"
 import {AudioEffectCompositeDeviceEditor} from "@/ui/devices/audio-effects/AudioEffectCompositeDeviceEditor"
 import {FrequencySplitDeviceEditor} from "@/ui/devices/audio-effects/FrequencySplit/FrequencySplitDeviceEditor"
 import {EffectFactories as CoreEffectFactories} from "@opendaw/studio-core"
 import {
     ApparatDeviceBoxAdapter,
     ArpeggioDeviceBoxAdapter,
+    EuclidDeviceBoxAdapter,
     AudioBusBoxAdapter,
     AudioEffectCompositeBoxAdapter,
     AutotuneDeviceBoxAdapter,
@@ -140,6 +143,12 @@ export namespace DeviceEditorFactory {
                                       service={service}
                                       adapter={service.project.boxAdapters.adapterFor(box, ArpeggioDeviceBoxAdapter)}
                                       deviceHost={deviceHost}/>
+            ),
+            visitEuclidDeviceBox: (box: EuclidDeviceBox) => (
+                <EuclidDeviceEditor lifecycle={lifecycle}
+                                    service={service}
+                                    adapter={service.project.boxAdapters.adapterFor(box, EuclidDeviceBoxAdapter)}
+                                    deviceHost={deviceHost}/>
             ),
             visitPitchDeviceBox: (box: PitchDeviceBox) => (
                 <PitchDeviceEditor lifecycle={lifecycle}

@@ -234,6 +234,29 @@ export interface ArpeggioEffect extends MIDIEffect {
 }
 
 /**
+ * Generates Euclidean note patterns
+ * @group MIDI Effects
+ */
+export interface EuclidEffect extends MIDIEffect {
+    /** Always "Euclid" */
+    readonly key: "Euclid"
+    /** Pattern length in steps (1 to 64, default 16) */
+    steps: int
+    /** Number of active pulses in the pattern (0 to 64, default 4) */
+    pulses: int
+    /** Pattern rotation (-64 to 64, default 0) */
+    rotation: int
+    /** Step rate index (0-16): 1/1, 1/2, 1/3, 1/4, 3/16, 1/6, 1/8, 3/32, 1/12, 1/16, 3/64, 1/24, 1/32, 1/48, 1/64, 1/96, 1/128 (default 9 = 1/16) */
+    rate: int
+    /** Note length relative to the step (0.0 to 2.0, default 0.75) */
+    gate: float
+    /** MIDI note number (0 to 127, default 60) */
+    pitch: int
+    /** Note velocity (0.0 to 1.0, default 0.8) */
+    velocity: unitValue
+}
+
+/**
  * Shifts the pitch of incoming notes
  * @group MIDI Effects
  */
@@ -296,6 +319,8 @@ export interface SpielwerkEffect extends MIDIEffect, ScriptDevice {
 export interface MIDIEffects {
     /** {@link ArpeggioEffect} */
     "Arpeggio": ArpeggioEffect
+    /** {@link EuclidEffect} */
+    "Euclid": EuclidEffect
     /** {@link PitchEffect} */
     "Pitch": PitchEffect
     /** {@link VelocityEffect} */
